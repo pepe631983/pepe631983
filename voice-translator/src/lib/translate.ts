@@ -28,7 +28,11 @@ export async function translateText(
     langpair: `${from}|${to}`,
   })
 
-  const res = await fetch(`/api/translate?${params.toString()}`)
+  const base = import.meta.env.DEV
+    ? `/api/translate?${params.toString()}`
+    : `https://api.mymemory.translated.net/get?${params.toString()}`
+
+  const res = await fetch(base)
   if (!res.ok) {
     throw new Error(`Traducción fallida (${res.status})`)
   }

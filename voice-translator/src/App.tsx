@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { LANGUAGES } from './lib/languages'
+import { InstallPawaBanner } from './components/InstallPawaBanner'
+import { PwaUpdateToast } from './components/PwaUpdateToast'
 import { useRealtimeVoiceTranslation } from './hooks/useRealtimeVoiceTranslation'
+import { LANGUAGES } from './lib/languages'
 import './App.css'
 
 function App() {
@@ -28,17 +30,21 @@ function App() {
 
   return (
     <div className="app">
+      <PwaUpdateToast />
       <header className="header">
         <div className="brand">
-          <span className="brand-icon" aria-hidden>
-            🎙️
-          </span>
+          <img src="/pawa-icon.svg" alt="" className="brand-logo" width={56} height={56} />
           <div>
-            <h1>Voz en vivo</h1>
-            <p className="subtitle">Traducción de voz en tiempo real</p>
+            <p className="eyebrow">Progressive Web App</p>
+            <h1>
+              PAWA<span className="brand-dot">.</span>
+            </h1>
+            <p className="subtitle">Traducción de voz en tiempo real, instalable</p>
           </div>
         </div>
       </header>
+
+      <InstallPawaBanner />
 
       <main className="main">
         <section className="controls card">
@@ -177,8 +183,8 @@ function App() {
 
       <footer className="footer">
         <p>
-          Reconocimiento con Web Speech API · Traducción vía MyMemory (proxy local en
-          desarrollo). Para producción, configura DeepL, Google Cloud o Azure.
+          PAWA usa Web Speech API y MyMemory. En HTTPS puedes instalarla desde el navegador
+          (Chrome → Instalar app). Para traducción empresarial, conecta DeepL o Google Cloud.
         </p>
       </footer>
     </div>

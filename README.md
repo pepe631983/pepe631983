@@ -1,6 +1,6 @@
-# Traductor de voz en tiempo real
+# PAWA — Traductor de voz en tiempo real (PWA)
 
-Aplicación web que escucha tu voz, transcribe en el idioma que elijas y muestra (y opcionalmente reproduce) la traducción al instante.
+**PAWA** es una Progressive Web App: escucha tu voz, transcribe y traduce al instante, y puedes **instalarla** en móvil o escritorio como app nativa.
 
 ## Inicio rápido
 
@@ -11,6 +11,13 @@ npm run dev
 ```
 
 Abre la URL que muestra Vite (por defecto `http://localhost:5173`). Usa **Chrome** o **Edge** y concede permiso al micrófono.
+
+### Instalar PAWA
+
+- **Android / Chrome (escritorio):** menú → *Instalar app* o el banner *Instalar PAWA* cuando aparezca.
+- **iPhone:** Safari → Compartir → *Añadir a pantalla de inicio* (modo standalone).
+
+Para probar la PWA en local con service worker: `npm run build && npm run preview` (sirve en HTTPS recomendado en producción).
 
 ## Cómo funciona
 

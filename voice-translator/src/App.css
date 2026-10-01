@@ -1,10 +1,12 @@
 .app {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   max-width: 960px;
   margin: 0 auto;
-  padding: 1.5rem 1.25rem 2rem;
+  padding: max(1.5rem, env(safe-area-inset-top)) 1.25rem
+    max(2rem, env(safe-area-inset-bottom));
 }
 
 .header {
@@ -17,16 +19,29 @@
   gap: 1rem;
 }
 
-.brand-icon {
-  font-size: 2.25rem;
-  line-height: 1;
+.brand-logo {
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
+}
+
+.eyebrow {
+  margin: 0 0 0.15rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .header h1 {
   margin: 0;
-  font-size: 1.75rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.brand-dot {
+  color: var(--accent);
 }
 
 .subtitle {
