@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { resolveTranslationPair } from '../lib/detectLanguage'
+import { detectBetween, resolveTranslationPair } from '../lib/detectLanguage'
 import { dualSpeechTag, speechTagForCode } from '../lib/languages'
 import { speakTranslationText } from '../lib/speech'
 import { translateText } from '../lib/translate'
@@ -52,15 +52,38 @@ export function useRealtimeVoiceTranslation(
     speakTranslationRef.current = speakTranslation
   }, [speakTranslation])
 
-  const speak = useCallback((text: string, langCode: string, original: string) => {
-    if (!speakTranslationRef.current || !text.trim()) return
+  const recognitionLang = autoDetect
+    ? dualSpeechTag(langA, langB)
+    : speechTagForCode(langA)
 
-    const speakKey = `${normalizePhrase(original)}|${normalizePhrase(text)}`
-    if (speakKey === lastSpokenKeyRef.current) return
-    lastSpokenKeyRef.current = speakKey
+  const resumeAfterSpeech = useCallback(() => {
+    if (!shouldRestartRef.current) return
+    const recognition = recognitionRef.current
+    if (!recognition) return
+    try {
+      recognition.lang = recognitionLang
+      recognition.start()
+    } catch {
+      /* onend handler will retry */
+    }
+  }, [recognitionLang])
 
-    speakTranslationText(text, langCode)
-  }, [])
+  const speak = useCallback(
+    (text: string, langCode: string, original: string) => {
+      if (!speakTranslationRef.current || !text.trim()) return
+
+      const speakKey = `${normalizePhrase(original)}|${normalizePhrase(text)}`
+      if (speakKey === lastSpokenKeyRef.current) return
+      lastSpokenKeyRef.current = speakKey
+
+      recognitionRef.current?.stop()
+
+      speakTranslationText(text, langCode, () => {
+        window.setTimeout(() => resumeAfterSpeech(), 200)
+      })
+    },
+    [resumeAfterSpeech],
+  )
 
   const pickLanguages = useCallback(
     (text: string) => {
@@ -68,7 +91,9 @@ export function useRealtimeVoiceTranslation(
         return { from: langA, to: langB }
       }
       const pair = resolveTranslationPair(text, langA, langB, lastFromRef.current)
-      lastFromRef.current = pair.from
+      if (detectBetween(text, langA, langB)) {
+        lastFromRef.current = pair.from
+      }
       return pair
     },
     [autoDetect, langA, langB],
@@ -140,10 +165,6 @@ export function useRealtimeVoiceTranslation(
     },
     [runTranslation],
   )
-
-  const recognitionLang = autoDetect
-    ? dualSpeechTag(langA, langB)
-    : speechTagForCode(langA)
 
   const stop = useCallback(() => {
     shouldRestartRef.current = false

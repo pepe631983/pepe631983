@@ -26,16 +26,27 @@ function voiceForLang(langCode: string): SpeechSynthesisVoice | undefined {
   const prefix = tag.split('-')[0]?.toLowerCase()
   const voices = voicesCache.length ? voicesCache : refreshVoices()
 
+  const local = voices.filter((v) => v.localService)
+  const pool = local.length ? local : voices
+
   return (
-    voices.find((v) => v.lang.toLowerCase() === tag.toLowerCase()) ??
-    voices.find((v) => v.lang.toLowerCase().startsWith(`${prefix}-`)) ??
-    voices.find((v) => v.lang.toLowerCase().startsWith(prefix ?? ''))
+    pool.find((v) => v.lang.toLowerCase() === tag.toLowerCase()) ??
+    pool.find((v) => v.lang.toLowerCase().startsWith(`${prefix}-`)) ??
+    pool.find((v) => v.lang.toLowerCase().startsWith(prefix ?? '')) ??
+    pool.find((v) => v.name.toLowerCase().includes(prefix ?? ''))
   )
 }
 
-export function speakTranslationText(text: string, langCode: string): void {
+export function speakTranslationText(
+  text: string,
+  langCode: string,
+  onDone?: () => void,
+): void {
   const trimmed = text.trim()
-  if (!trimmed) return
+  if (!trimmed) {
+    onDone?.()
+    return
+  }
 
   primeSpeechSynthesis()
 
@@ -48,7 +59,13 @@ export function speakTranslationText(text: string, langCode: string): void {
   const voice = voiceForLang(langCode)
   if (voice) utterance.voice = voice
 
-  synth.speak(utterance)
+  const finish = () => onDone?.()
+  utterance.onend = finish
+  utterance.onerror = finish
+
+  window.setTimeout(() => {
+    synth.speak(utterance)
+  }, 50)
 }
 
 const SPEAK_PREF_KEY = 'pawa.speakTranslation.v2'

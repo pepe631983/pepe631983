@@ -28,5 +28,11 @@ export function labelForCode(code: string): string {
 }
 
 export function dualSpeechTag(codeA: string, codeB: string): string {
-  return `${speechTagForCode(codeA)},${speechTagForCode(codeB)}`
+  const tags = [speechTagForCode(codeA), speechTagForCode(codeB)]
+  tags.sort((a, b) => {
+    if (a.startsWith('en')) return -1
+    if (b.startsWith('en')) return 1
+    return 0
+  })
+  return tags.join(',')
 }
