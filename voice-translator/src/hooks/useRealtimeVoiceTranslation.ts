@@ -10,6 +10,7 @@ import {
   stopSpeechKeepAlive,
 } from '../lib/speech'
 import { isTranslatablePhrase } from '../lib/phraseQuality'
+import { shouldSpeakCapturedSource } from '../lib/ttsPolicy'
 import { buildTranslationContext, translateText } from '../lib/translate'
 
 export type TranslationSegment = {
@@ -115,8 +116,14 @@ export function useRealtimeVoiceTranslation(
   }, [micSpeechTag])
 
   const speak = useCallback(
-    (text: string, langCode: string, original: string) => {
+    (
+      text: string,
+      langCode: string,
+      original: string,
+      fromLang: string,
+    ) => {
       if (!speakTranslationRef.current || !text.trim()) return
+      if (!shouldSpeakCapturedSource(fromLang)) return
 
       const speakKey = `${normalizePhrase(original)}|${normalizePhrase(text)}`
       if (speakKey === lastSpokenKeyRef.current) return
@@ -248,7 +255,7 @@ export function useRealtimeVoiceTranslation(
           ])
         }
 
-        speak(translated, toLang, trimmed)
+        speak(translated, toLang, trimmed, fromLang)
 
         setInterimOriginal('')
         setInterimTranslated('')

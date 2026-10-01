@@ -158,8 +158,12 @@ function App() {
 
           {(autoDetect || conversationMode) && listening && (
             <p className="direction-live" aria-live="polite">
-              Ahora: {labelForCode(activeFrom)} → {labelForCode(activeTo)} (voz
-              en {labelForCode(activeTo)})
+              Ahora: {labelForCode(activeFrom)} → {labelForCode(activeTo)}
+              {activeFrom === 'en'
+                ? ' (inglés: solo texto)'
+                : activeFrom === 'es'
+                  ? ` (español: voz en ${labelForCode(activeTo)})`
+                  : ''}
             </p>
           )}
 
@@ -183,7 +187,7 @@ function App() {
                 if (on) unlockAudioForSession()
               }}
             />
-            Reproducir traducción con voz sintética (una vez por frase)
+            Voz sintética al hablar español (inglés captado → solo texto)
           </label>
 
           <div className="actions">
