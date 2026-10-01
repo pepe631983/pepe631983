@@ -5,6 +5,7 @@ import {
   unlockAudioForSession,
 } from './lib/speech'
 import { InstallPawaBanner } from './components/InstallPawaBanner'
+import { TranslationQualitySettings } from './components/TranslationQualitySettings'
 import { PwaUpdateToast } from './components/PwaUpdateToast'
 import { useRealtimeVoiceTranslation } from './hooks/useRealtimeVoiceTranslation'
 import { LANGUAGES, labelForCode } from './lib/languages'
@@ -218,6 +219,8 @@ function App() {
             </p>
           )}
         </section>
+
+        <TranslationQualitySettings disabled={listening} />
 
         <section className="live card">
           <h2>En vivo</h2>

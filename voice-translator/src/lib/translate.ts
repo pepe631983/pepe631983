@@ -1,51 +1,78 @@
-type MyMemoryResponse = {
-  responseData?: { translatedText?: string }
-  responseStatus?: number
-  quotaFinished?: boolean
-  matches?: { translation?: string }[]
+import { loadGeminiApiKey, loadTranslationEngine } from './translationSettings'
+import { translateWithGemini } from './translateGemini'
+import { translateWithMyMemory } from './translateMyMemory'
+
+export type TranslateOptions = {
+  /** Vista previa en vivo: más rápida, menos precisa */
+  fastPreview?: boolean
+  /** Frases anteriores para coherencia (solo motor natural) */
+  context?: string
 }
 
 const cache = new Map<string, string>()
 
-function cacheKey(text: string, from: string, to: string): string {
-  return `${from}|${to}|${text.trim().toLowerCase()}`
+function cacheKey(
+  text: string,
+  from: string,
+  to: string,
+  mode: string,
+): string {
+  return `${mode}|${from}|${to}|${text.trim().toLowerCase()}`
 }
 
 export async function translateText(
   text: string,
   from: string,
   to: string,
+  options: TranslateOptions = {},
 ): Promise<string> {
   const trimmed = text.trim()
   if (!trimmed || from === to) return trimmed
 
-  const key = cacheKey(trimmed, from, to)
+  const engine = loadTranslationEngine()
+  const geminiKey = loadGeminiApiKey()
+  const useGemini =
+    engine === 'gemini' &&
+    geminiKey.length > 8 &&
+    !options.fastPreview
+
+  const mode = useGemini ? 'gemini' : 'mymemory'
+  const key = cacheKey(trimmed, from, to, mode)
   const cached = cache.get(key)
   if (cached) return cached
 
-  const params = new URLSearchParams({
-    q: trimmed,
-    langpair: `${from}|${to}`,
-  })
+  let translated: string
 
-  const base = import.meta.env.DEV
-    ? `/api/translate?${params.toString()}`
-    : `https://api.mymemory.translated.net/get?${params.toString()}`
-
-  const res = await fetch(base)
-  if (!res.ok) {
-    throw new Error(`Traducción fallida (${res.status})`)
-  }
-
-  const data = (await res.json()) as MyMemoryResponse
-  const translated =
-    data.responseData?.translatedText?.trim() ||
-    data.matches?.[0]?.translation?.trim()
-
-  if (!translated) {
-    throw new Error('No se recibió traducción')
+  if (useGemini) {
+    try {
+      translated = await translateWithGemini(
+        trimmed,
+        from,
+        to,
+        geminiKey,
+        options.context,
+      )
+    } catch {
+      translated = await translateWithMyMemory(trimmed, from, to)
+    }
+  } else {
+    translated = await translateWithMyMemory(trimmed, from, to)
   }
 
   cache.set(key, translated)
   return translated
+}
+
+export function buildTranslationContext(
+  segments: { original: string; translated: string; fromLang: string; toLang: string }[],
+  maxItems = 3,
+): string | undefined {
+  if (segments.length === 0) return undefined
+  return segments
+    .slice(-maxItems)
+    .map(
+      (s) =>
+        `(${s.fromLang}→${s.toLang}) «${s.original}» → «${s.translated}»`,
+    )
+    .join('\n')
 }

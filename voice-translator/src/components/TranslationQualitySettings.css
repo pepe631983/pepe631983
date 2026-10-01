@@ -1,0 +1,73 @@
+.quality h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+}
+
+.quality-intro {
+  margin: 0 0 1rem;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.engine-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.engine-option {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.engine-option strong {
+  display: block;
+}
+
+.engine-option small {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.quality .api-key input {
+  width: 100%;
+  margin-top: 0.35rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  color: var(--text);
+}
+
+.quality .api-key a {
+  display: inline-block;
+  margin-top: 0.45rem;
+  font-size: 0.85rem;
+  color: var(--accent);
+}
+
+.quality-status {
+  margin: 0;
+  font-size: 0.85rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 8px;
+}
+
+.quality-status.ok {
+  background: rgba(34, 197, 94, 0.12);
+  color: #86efac;
+}
+
+.quality-status.warn {
+  background: rgba(234, 179, 8, 0.12);
+  color: #fde68a;
+}

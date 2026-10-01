@@ -6,7 +6,7 @@ import {
   startSpeechKeepAlive,
   stopSpeechKeepAlive,
 } from '../lib/speech'
-import { translateText } from '../lib/translate'
+import { buildTranslationContext, translateText } from '../lib/translate'
 
 export type TranslationSegment = {
   id: string
@@ -43,6 +43,7 @@ export function useRealtimeVoiceTranslation(
   const [activeFrom, setActiveFrom] = useState(langA)
   const [activeTo, setActiveTo] = useState(langB)
   const [segments, setSegments] = useState<TranslationSegment[]>([])
+  const segmentsRef = useRef<TranslationSegment[]>([])
 
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const shouldRestartRef = useRef(false)
@@ -65,6 +66,10 @@ export function useRealtimeVoiceTranslation(
   useEffect(() => {
     conversationModeRef.current = conversationMode
   }, [conversationMode])
+
+  useEffect(() => {
+    segmentsRef.current = segments
+  }, [segments])
 
   const recognitionLang = autoDetect
     ? dualSpeechTag(langA, langB)
@@ -150,7 +155,12 @@ export function useRealtimeVoiceTranslation(
       setInterimOriginal(trimmed)
 
       try {
-        const translated = await translateText(trimmed, from, to)
+        const translated = await translateText(trimmed, from, to, {
+          fastPreview: !isFinal,
+          context: isFinal
+            ? buildTranslationContext(segmentsRef.current)
+            : undefined,
+        })
 
         if (isFinal) {
           if (runId !== finalRunIdRef.current) return
