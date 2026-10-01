@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { InstallPawaBanner } from './components/InstallPawaBanner'
 import { PwaUpdateToast } from './components/PwaUpdateToast'
 import { useRealtimeVoiceTranslation } from './hooks/useRealtimeVoiceTranslation'
-import { LANGUAGES } from './lib/languages'
+import { LANGUAGES, labelForCode } from './lib/languages'
 import './App.css'
 
 function App() {
-  const [sourceLang, setSourceLang] = useState('es')
-  const [targetLang, setTargetLang] = useState('en')
+  const [langA, setLangA] = useState('es')
+  const [langB, setLangB] = useState('en')
+  const [autoDetect, setAutoDetect] = useState(true)
   const [speakOut, setSpeakOut] = useState(true)
 
   const {
@@ -16,16 +17,18 @@ function App() {
     error,
     interimOriginal,
     interimTranslated,
+    activeFrom,
+    activeTo,
     segments,
     start,
     stop,
     clearHistory,
     setError,
-  } = useRealtimeVoiceTranslation(sourceLang, targetLang, speakOut)
+  } = useRealtimeVoiceTranslation(langA, langB, autoDetect, speakOut)
 
   const swapLanguages = () => {
-    setSourceLang(targetLang)
-    setTargetLang(sourceLang)
+    setLangA(langB)
+    setLangB(langA)
   }
 
   return (
@@ -54,12 +57,27 @@ function App() {
 
       <main className="main">
         <section className="controls card">
+          <label className="toggle auto-detect">
+            <input
+              type="checkbox"
+              checked={autoDetect}
+              onChange={(e) => setAutoDetect(e.target.checked)}
+              disabled={listening}
+            />
+            <span>
+              <strong>Modo intérprete automático</strong>
+              <small>
+                Detecta el idioma y traduce al otro sin pulsar intercambiar
+              </small>
+            </span>
+          </label>
+
           <div className="lang-row">
             <label className="field">
-              <span>Idioma que hablas</span>
+              <span>{autoDetect ? 'Idioma 1' : 'Idioma que hablas'}</span>
               <select
-                value={sourceLang}
-                onChange={(e) => setSourceLang(e.target.value)}
+                value={langA}
+                onChange={(e) => setLangA(e.target.value)}
                 disabled={listening}
               >
                 {LANGUAGES.map((lang) => (
@@ -70,22 +88,26 @@ function App() {
               </select>
             </label>
 
-            <button
-              type="button"
-              className="swap-btn"
-              onClick={swapLanguages}
-              disabled={listening}
-              title="Intercambiar idiomas"
-              aria-label="Intercambiar idiomas"
-            >
-              ⇄
-            </button>
+            {!autoDetect && (
+              <button
+                type="button"
+                className="swap-btn"
+                onClick={swapLanguages}
+                disabled={listening}
+                title="Intercambiar idiomas"
+                aria-label="Intercambiar idiomas"
+              >
+                ⇄
+              </button>
+            )}
+
+            {autoDetect && <div className="lang-auto-pill" aria-hidden>↔</div>}
 
             <label className="field">
-              <span>Traducir a</span>
+              <span>{autoDetect ? 'Idioma 2' : 'Traducir a'}</span>
               <select
-                value={targetLang}
-                onChange={(e) => setTargetLang(e.target.value)}
+                value={langB}
+                onChange={(e) => setLangB(e.target.value)}
                 disabled={listening}
               >
                 {LANGUAGES.map((lang) => (
@@ -96,6 +118,12 @@ function App() {
               </select>
             </label>
           </div>
+
+          {autoDetect && listening && (
+            <p className="direction-live" aria-live="polite">
+              Ahora: {labelForCode(activeFrom)} → {labelForCode(activeTo)}
+            </p>
+          )}
 
           <label className="toggle">
             <input
@@ -112,7 +140,7 @@ function App() {
                 type="button"
                 className="mic-btn start"
                 onClick={start}
-                disabled={!supported}
+                disabled={!supported || langA === langB}
               >
                 Iniciar traducción
               </button>
@@ -130,6 +158,10 @@ function App() {
               Limpiar
             </button>
           </div>
+
+          {langA === langB && (
+            <p className="banner warn">Elige dos idiomas distintos.</p>
+          )}
 
           {!supported && (
             <p className="banner warn">
@@ -157,7 +189,7 @@ function App() {
             <div className="pane">
               <h3>Original</h3>
               <p className={interimOriginal ? 'interim' : 'placeholder'}>
-                {interimOriginal || 'Habla cerca del micrófono…'}
+                {interimOriginal || 'Habla en cualquiera de los dos idiomas…'}
               </p>
             </div>
             <div className="pane accent">
@@ -178,6 +210,9 @@ function App() {
             <ul className="segment-list">
               {segments.map((seg) => (
                 <li key={seg.id} className="segment">
+                  <p className="segment-meta">
+                    {labelForCode(seg.fromLang)} → {labelForCode(seg.toLang)}
+                  </p>
                   <p className="original">{seg.original}</p>
                   <p className="translated">{seg.translated}</p>
                 </li>

@@ -22,3 +22,11 @@ export const LANGUAGES: LanguageOption[] = [
 export function speechTagForCode(code: string): string {
   return LANGUAGES.find((l) => l.code === code)?.speechTag ?? 'en-US'
 }
+
+export function labelForCode(code: string): string {
+  return LANGUAGES.find((l) => l.code === code)?.label ?? code
+}
+
+export function dualSpeechTag(codeA: string, codeB: string): string {
+  return `${speechTagForCode(codeA)},${speechTagForCode(codeB)}`
+}

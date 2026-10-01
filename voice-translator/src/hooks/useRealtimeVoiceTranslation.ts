@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { speechTagForCode } from '../lib/languages'
+import { resolveTranslationPair } from '../lib/detectLanguage'
+import { dualSpeechTag, speechTagForCode } from '../lib/languages'
 import { translateText } from '../lib/translate'
 
 export type TranslationSegment = {
   id: string
   original: string
   translated: string
+  fromLang: string
+  toLang: string
   isFinal: boolean
 }
 
@@ -17,8 +20,9 @@ function getSpeechRecognitionCtor():
 }
 
 export function useRealtimeVoiceTranslation(
-  sourceLang: string,
-  targetLang: string,
+  langA: string,
+  langB: string,
+  autoDetect: boolean,
   speakTranslation: boolean,
 ) {
   const [listening, setListening] = useState(false)
@@ -26,12 +30,15 @@ export function useRealtimeVoiceTranslation(
   const [error, setError] = useState<string | null>(null)
   const [interimOriginal, setInterimOriginal] = useState('')
   const [interimTranslated, setInterimTranslated] = useState('')
+  const [activeFrom, setActiveFrom] = useState(langA)
+  const [activeTo, setActiveTo] = useState(langB)
   const [segments, setSegments] = useState<TranslationSegment[]>([])
 
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const shouldRestartRef = useRef(false)
   const translateRequestRef = useRef(0)
   const debounceRef = useRef<number | null>(null)
+  const lastFromRef = useRef(langA)
 
   const speak = useCallback(
     (text: string, langCode: string) => {
@@ -45,6 +52,18 @@ export function useRealtimeVoiceTranslation(
     [speakTranslation],
   )
 
+  const pickLanguages = useCallback(
+    (text: string) => {
+      if (!autoDetect) {
+        return { from: langA, to: langB }
+      }
+      const pair = resolveTranslationPair(text, langA, langB, lastFromRef.current)
+      lastFromRef.current = pair.from
+      return pair
+    },
+    [autoDetect, langA, langB],
+  )
+
   const runTranslation = useCallback(
     async (text: string, isFinal: boolean) => {
       const trimmed = text.trim()
@@ -54,11 +73,15 @@ export function useRealtimeVoiceTranslation(
         return
       }
 
+      const { from, to } = pickLanguages(trimmed)
+      setActiveFrom(from)
+      setActiveTo(to)
       setInterimOriginal(trimmed)
+
       const requestId = ++translateRequestRef.current
 
       try {
-        const translated = await translateText(trimmed, sourceLang, targetLang)
+        const translated = await translateText(trimmed, from, to)
         if (requestId !== translateRequestRef.current) return
 
         setInterimTranslated(translated)
@@ -70,19 +93,21 @@ export function useRealtimeVoiceTranslation(
               id: crypto.randomUUID(),
               original: trimmed,
               translated,
+              fromLang: from,
+              toLang: to,
               isFinal: true,
             },
           ])
           setInterimOriginal('')
           setInterimTranslated('')
-          speak(translated, targetLang)
+          speak(translated, to)
         }
       } catch (e) {
         if (requestId !== translateRequestRef.current) return
         setError(e instanceof Error ? e.message : 'Error de traducción')
       }
     },
-    [sourceLang, targetLang, speak],
+    [pickLanguages, speak],
   )
 
   const scheduleInterimTranslation = useCallback(
@@ -96,6 +121,10 @@ export function useRealtimeVoiceTranslation(
     },
     [runTranslation],
   )
+
+  const recognitionLang = autoDetect
+    ? dualSpeechTag(langA, langB)
+    : speechTagForCode(langA)
 
   const stop = useCallback(() => {
     shouldRestartRef.current = false
@@ -115,11 +144,14 @@ export function useRealtimeVoiceTranslation(
 
     setError(null)
     shouldRestartRef.current = true
+    lastFromRef.current = langA
+    setActiveFrom(langA)
+    setActiveTo(langB)
 
     const recognition = new Ctor()
     recognition.continuous = true
     recognition.interimResults = true
-    recognition.lang = speechTagForCode(sourceLang)
+    recognition.lang = recognitionLang
     recognition.maxAlternatives = 1
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
@@ -155,6 +187,7 @@ export function useRealtimeVoiceTranslation(
     recognition.onend = () => {
       if (shouldRestartRef.current) {
         try {
+          recognition.lang = recognitionLang
           recognition.start()
         } catch {
           setListening(false)
@@ -173,7 +206,7 @@ export function useRealtimeVoiceTranslation(
       setError('No se pudo iniciar el micrófono')
       setListening(false)
     }
-  }, [runTranslation, scheduleInterimTranslation, sourceLang])
+  }, [langA, langB, recognitionLang, runTranslation, scheduleInterimTranslation])
 
   useEffect(() => {
     setSupported(!!getSpeechRecognitionCtor())
@@ -181,9 +214,14 @@ export function useRealtimeVoiceTranslation(
 
   useEffect(() => {
     if (recognitionRef.current) {
-      recognitionRef.current.lang = speechTagForCode(sourceLang)
+      recognitionRef.current.lang = recognitionLang
     }
-  }, [sourceLang])
+    if (!listening) {
+      lastFromRef.current = langA
+      setActiveFrom(langA)
+      setActiveTo(langB)
+    }
+  }, [langA, langB, recognitionLang, listening])
 
   useEffect(() => {
     return () => {
@@ -208,6 +246,8 @@ export function useRealtimeVoiceTranslation(
     error,
     interimOriginal,
     interimTranslated,
+    activeFrom,
+    activeTo,
     segments,
     start,
     stop,
