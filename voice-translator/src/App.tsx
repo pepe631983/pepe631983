@@ -33,7 +33,13 @@ function App() {
       <PwaUpdateToast />
       <header className="header">
         <div className="brand">
-          <img src="/pawa-icon.svg" alt="" className="brand-logo" width={56} height={56} />
+          <img
+            src={`${import.meta.env.BASE_URL}pawa-icon.svg`}
+            alt=""
+            className="brand-logo"
+            width={56}
+            height={56}
+          />
           <div>
             <p className="eyebrow">Progressive Web App</p>
             <h1>

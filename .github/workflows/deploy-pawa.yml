@@ -1,0 +1,41 @@
+name: Deploy PAWA (GitHub Pages)
+
+on:
+  push:
+    branches:
+      - main
+      - cursor/voice-realtime-translator-b111
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: deploy-pawa-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: voice-translator/package-lock.json
+
+      - name: Install and build
+        working-directory: voice-translator
+        run: |
+          npm ci
+          npm run build:pages
+
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: voice-translator/dist
+          commit_message: 'Deploy PAWA ${{ github.sha }}'

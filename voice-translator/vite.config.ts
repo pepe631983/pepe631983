@@ -2,15 +2,19 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+const base = process.env.BASE_PATH ?? '/'
+const normalizedBase = base.endsWith('/') ? base : `${base}/`
+
 // https://vite.dev/config/
 export default defineConfig({
+  base: normalizedBase,
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'pawa-icon.svg', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
-        id: '/',
+        id: normalizedBase,
         name: 'PAWA — Traductor de voz en vivo',
         short_name: 'PAWA',
         description:
@@ -19,8 +23,8 @@ export default defineConfig({
         background_color: '#0f1419',
         display: 'standalone',
         orientation: 'portrait-primary',
-        start_url: '/',
-        scope: '/',
+        start_url: normalizedBase,
+        scope: normalizedBase,
         lang: 'es',
         categories: ['utilities', 'productivity'],
         icons: [
@@ -44,7 +48,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        navigateFallback: '/index.html',
+        navigateFallback: `${normalizedBase}index.html`,
+        navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/api\.mymemory\.translated\.net\/get/i,
