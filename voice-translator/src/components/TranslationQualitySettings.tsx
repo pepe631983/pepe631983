@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { SUGGESTED_BACKEND_URL } from '../lib/defaultBackend'
 import {
   hasNaturalTranslation,
   isCloudTranslationReady,
@@ -103,9 +104,20 @@ export function TranslationQualitySettings({ disabled }: { disabled: boolean }) 
             autoComplete="off"
           />
           <p className="hint">
-            Despliega una vez: carpeta <code>cloud-translate/</code> del repo
-            (ver README). Luego pega aquí la URL del worker.
+            Despliega con <code>cloud-translate/setup-deepl.sh</code> en tu PC
+            (clave segura en Cloudflare). O usa el backend de prueba:
           </p>
+          <button
+            type="button"
+            className="use-backend-btn"
+            disabled={disabled}
+            onClick={() => {
+              setBackendUrl(SUGGESTED_BACKEND_URL)
+              persist('cloud', apiKey, SUGGESTED_BACKEND_URL)
+            }}
+          >
+            Usar backend configurado
+          </button>
         </label>
       )}
 

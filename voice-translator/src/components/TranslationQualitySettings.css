@@ -66,6 +66,17 @@
   font-size: 0.78rem;
 }
 
+.use-backend-btn {
+  margin-top: 0.5rem;
+  border: 1px solid var(--accent);
+  background: rgba(37, 99, 235, 0.15);
+  color: var(--accent);
+  border-radius: 8px;
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
 .quality-status {
   margin: 0;
   font-size: 0.85rem;
