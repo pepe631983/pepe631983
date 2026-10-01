@@ -1,11 +1,14 @@
-import { loadGeminiApiKey, loadTranslationEngine } from './translationSettings'
+import {
+  loadBackendUrl,
+  loadGeminiApiKey,
+  loadTranslationEngine,
+} from './translationSettings'
+import { translateViaBackend } from './translateBackend'
 import { translateWithGemini } from './translateGemini'
 import { translateWithMyMemory } from './translateMyMemory'
 
 export type TranslateOptions = {
-  /** Vista previa en vivo: más rápida, menos precisa */
   fastPreview?: boolean
-  /** Frases anteriores para coherencia (solo motor natural) */
   context?: string
 }
 
@@ -30,20 +33,32 @@ export async function translateText(
   if (!trimmed || from === to) return trimmed
 
   const engine = loadTranslationEngine()
+  const backendUrl = loadBackendUrl()
   const geminiKey = loadGeminiApiKey()
-  const useGemini =
-    engine === 'gemini' &&
-    geminiKey.length > 8 &&
-    !options.fastPreview
 
-  const mode = useGemini ? 'gemini' : 'mymemory'
+  let mode: string
+  if (engine === 'cloud' && backendUrl.startsWith('https://') && !options.fastPreview) {
+    mode = 'cloud'
+  } else if (engine === 'gemini' && geminiKey.length > 8 && !options.fastPreview) {
+    mode = 'gemini'
+  } else {
+    mode = 'mymemory'
+  }
+
   const key = cacheKey(trimmed, from, to, mode)
   const cached = cache.get(key)
   if (cached) return cached
 
   let translated: string
 
-  if (useGemini) {
+  if (mode === 'cloud') {
+    try {
+      const result = await translateViaBackend(backendUrl, trimmed, from, to)
+      translated = result.translated
+    } catch {
+      translated = await translateWithMyMemory(trimmed, from, to)
+    }
+  } else if (mode === 'gemini') {
     try {
       translated = await translateWithGemini(
         trimmed,
@@ -64,7 +79,12 @@ export async function translateText(
 }
 
 export function buildTranslationContext(
-  segments: { original: string; translated: string; fromLang: string; toLang: string }[],
+  segments: {
+    original: string
+    translated: string
+    fromLang: string
+    toLang: string
+  }[],
   maxItems = 3,
 ): string | undefined {
   if (segments.length === 0) return undefined

@@ -34,9 +34,22 @@ Para probar en local: `npm run build && npm run preview` (HTTPS en producción).
 | Traducción | [MyMemory](https://mymemory.translated.net/) vía proxy en desarrollo (`vite.config.ts`) |
 | Texto → voz | `speechSynthesis` del navegador |
 
+## Traducción natural (DeepL en la nube)
+
+Backend en **`cloud-translate/`** (Cloudflare Worker). La clave DeepL **no** va en el móvil.
+
+```bash
+cd cloud-translate && npm install
+npx wrangler login
+npx wrangler secret put DEEPL_AUTH_KEY
+npm run deploy
+```
+
+En PAWA → **Calidad de traducción** → **Nube (DeepL)** → pega la URL del worker.
+
 ## Producción
 
-Para un despliegue serio conviene sustituir MyMemory por **DeepL**, **Google Cloud Translation**, **Azure Translator** o **OpenAI**, y exponer la traducción en un backend propio para no exponer claves API.
+MyMemory es solo vista previa. Para calidad nativa usa el worker **DeepL** o Gemini.
 
 El reconocimiento en el navegador depende del motor del SO/navegador; para mayor precisión y más idiomas, integra **Whisper** o **Google Speech-to-Text** en streaming.
 

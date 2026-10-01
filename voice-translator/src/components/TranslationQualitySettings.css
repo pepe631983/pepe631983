@@ -55,6 +55,17 @@
   color: var(--accent);
 }
 
+.quality .hint {
+  margin: 0.45rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.quality .hint code {
+  font-size: 0.78rem;
+}
+
 .quality-status {
   margin: 0;
   font-size: 0.85rem;
