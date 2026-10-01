@@ -1,4 +1,9 @@
 import { useState } from 'react'
+import {
+  loadSpeakPreference,
+  primeSpeechSynthesis,
+  saveSpeakPreference,
+} from './lib/speech'
 import { InstallPawaBanner } from './components/InstallPawaBanner'
 import { PwaUpdateToast } from './components/PwaUpdateToast'
 import { useRealtimeVoiceTranslation } from './hooks/useRealtimeVoiceTranslation'
@@ -9,7 +14,7 @@ function App() {
   const [langA, setLangA] = useState('es')
   const [langB, setLangB] = useState('en')
   const [autoDetect, setAutoDetect] = useState(true)
-  const [speakOut, setSpeakOut] = useState(true)
+  const [speakOut, setSpeakOut] = useState(loadSpeakPreference)
 
   const {
     listening,
@@ -129,7 +134,12 @@ function App() {
             <input
               type="checkbox"
               checked={speakOut}
-              onChange={(e) => setSpeakOut(e.target.checked)}
+              onChange={(e) => {
+                const on = e.target.checked
+                setSpeakOut(on)
+                saveSpeakPreference(on)
+                if (on) primeSpeechSynthesis()
+              }}
             />
             Reproducir traducción con voz sintética (una vez por frase)
           </label>
@@ -139,7 +149,10 @@ function App() {
               <button
                 type="button"
                 className="mic-btn start"
-                onClick={start}
+                onClick={() => {
+                  primeSpeechSynthesis()
+                  start()
+                }}
                 disabled={!supported || langA === langB}
               >
                 Iniciar traducción

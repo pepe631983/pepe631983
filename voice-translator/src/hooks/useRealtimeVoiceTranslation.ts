@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { resolveTranslationPair } from '../lib/detectLanguage'
 import { dualSpeechTag, speechTagForCode } from '../lib/languages'
+import { speakTranslationText } from '../lib/speech'
 import { translateText } from '../lib/translate'
 
 export type TranslationSegment = {
@@ -44,23 +45,22 @@ export function useRealtimeVoiceTranslation(
   const debounceRef = useRef<number | null>(null)
   const lastFromRef = useRef(langA)
   const lastFinalPhraseRef = useRef('')
-  const lastSpokenTranslationRef = useRef('')
+  const lastSpokenKeyRef = useRef('')
+  const speakTranslationRef = useRef(speakTranslation)
 
-  const speak = useCallback(
-    (text: string, langCode: string) => {
-      if (!speakTranslation || !text.trim()) return
-      const normalized = normalizePhrase(text)
-      if (normalized === lastSpokenTranslationRef.current) return
-      lastSpokenTranslationRef.current = normalized
+  useEffect(() => {
+    speakTranslationRef.current = speakTranslation
+  }, [speakTranslation])
 
-      window.speechSynthesis.cancel()
-      const utterance = new SpeechSynthesisUtterance(text)
-      utterance.lang = speechTagForCode(langCode)
-      utterance.rate = 1
-      window.speechSynthesis.speak(utterance)
-    },
-    [speakTranslation],
-  )
+  const speak = useCallback((text: string, langCode: string, original: string) => {
+    if (!speakTranslationRef.current || !text.trim()) return
+
+    const speakKey = `${normalizePhrase(original)}|${normalizePhrase(text)}`
+    if (speakKey === lastSpokenKeyRef.current) return
+    lastSpokenKeyRef.current = speakKey
+
+    speakTranslationText(text, langCode)
+  }, [])
 
   const pickLanguages = useCallback(
     (text: string) => {
@@ -120,7 +120,7 @@ export function useRealtimeVoiceTranslation(
             isFinal: true,
           },
         ])
-        speak(translated, to)
+        speak(translated, to, trimmed)
       } catch (e) {
         if (requestId !== translateRequestRef.current) return
         setError(e instanceof Error ? e.message : 'Error de traducción')
@@ -165,7 +165,7 @@ export function useRealtimeVoiceTranslation(
     shouldRestartRef.current = true
     lastFromRef.current = langA
     lastFinalPhraseRef.current = ''
-    lastSpokenTranslationRef.current = ''
+    lastSpokenKeyRef.current = ''
     setActiveFrom(langA)
     setActiveTo(langB)
     setInterimOriginal('')
@@ -262,7 +262,7 @@ export function useRealtimeVoiceTranslation(
     setInterimOriginal('')
     setInterimTranslated('')
     lastFinalPhraseRef.current = ''
-    lastSpokenTranslationRef.current = ''
+    lastSpokenKeyRef.current = ''
   }, [])
 
   return {
