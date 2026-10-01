@@ -9,13 +9,14 @@ function App() {
   const [langA, setLangA] = useState('es')
   const [langB, setLangB] = useState('en')
   const [autoDetect, setAutoDetect] = useState(true)
-  const [speakOut, setSpeakOut] = useState(false)
+  const [speakOut, setSpeakOut] = useState(true)
 
   const {
     listening,
     supported,
     error,
     interimOriginal,
+    interimTranslated,
     activeFrom,
     activeTo,
     segments,
@@ -130,7 +131,7 @@ function App() {
               checked={speakOut}
               onChange={(e) => setSpeakOut(e.target.checked)}
             />
-            Leer traducción en voz alta (opcional; desactivado por defecto)
+            Reproducir traducción con voz sintética (una vez por frase)
           </label>
 
           <div className="actions">
@@ -193,13 +194,8 @@ function App() {
             </div>
             <div className="pane accent">
               <h3>Traducción</h3>
-              <p
-                className={
-                  segments.length > 0 ? 'interim' : 'placeholder'
-                }
-              >
-                {segments.at(-1)?.translated ||
-                  'Aparece al terminar cada frase (sin repetir en voz alta).'}
+              <p className={interimTranslated ? 'interim' : 'placeholder'}>
+                {interimTranslated || 'La traducción aparecerá aquí en vivo…'}
               </p>
             </div>
           </div>

@@ -33,6 +33,7 @@ export function useRealtimeVoiceTranslation(
   const [supported, setSupported] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [interimOriginal, setInterimOriginal] = useState('')
+  const [interimTranslated, setInterimTranslated] = useState('')
   const [activeFrom, setActiveFrom] = useState(langA)
   const [activeTo, setActiveTo] = useState(langB)
   const [segments, setSegments] = useState<TranslationSegment[]>([])
@@ -40,12 +41,18 @@ export function useRealtimeVoiceTranslation(
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const shouldRestartRef = useRef(false)
   const translateRequestRef = useRef(0)
+  const debounceRef = useRef<number | null>(null)
   const lastFromRef = useRef(langA)
   const lastFinalPhraseRef = useRef('')
+  const lastSpokenTranslationRef = useRef('')
 
   const speak = useCallback(
     (text: string, langCode: string) => {
       if (!speakTranslation || !text.trim()) return
+      const normalized = normalizePhrase(text)
+      if (normalized === lastSpokenTranslationRef.current) return
+      lastSpokenTranslationRef.current = normalized
+
       window.speechSynthesis.cancel()
       const utterance = new SpeechSynthesisUtterance(text)
       utterance.lang = speechTagForCode(langCode)
@@ -68,17 +75,20 @@ export function useRealtimeVoiceTranslation(
   )
 
   const runTranslation = useCallback(
-    async (text: string) => {
+    async (text: string, isFinal: boolean) => {
       const trimmed = text.trim()
-      if (!trimmed) return
-
-      const normalized = normalizePhrase(trimmed)
-      if (normalized === lastFinalPhraseRef.current) return
-      lastFinalPhraseRef.current = normalized
+      if (!trimmed) {
+        if (isFinal) {
+          setInterimOriginal('')
+          setInterimTranslated('')
+        }
+        return
+      }
 
       const { from, to } = pickLanguages(trimmed)
       setActiveFrom(from)
       setActiveTo(to)
+      setInterimOriginal(trimmed)
 
       const requestId = ++translateRequestRef.current
 
@@ -86,8 +96,19 @@ export function useRealtimeVoiceTranslation(
         const translated = await translateText(trimmed, from, to)
         if (requestId !== translateRequestRef.current) return
 
+        setInterimTranslated(translated)
+
+        if (!isFinal) return
+
+        const normalized = normalizePhrase(trimmed)
+        const isDuplicate = normalized === lastFinalPhraseRef.current
+        lastFinalPhraseRef.current = normalized
+
         setInterimOriginal('')
         setInterimTranslated('')
+
+        if (isDuplicate) return
+
         setSegments((prev) => [
           ...prev,
           {
@@ -106,6 +127,18 @@ export function useRealtimeVoiceTranslation(
       }
     },
     [pickLanguages, speak],
+  )
+
+  const scheduleInterimTranslation = useCallback(
+    (text: string) => {
+      if (debounceRef.current !== null) {
+        window.clearTimeout(debounceRef.current)
+      }
+      debounceRef.current = window.setTimeout(() => {
+        void runTranslation(text, false)
+      }, 400)
+    },
+    [runTranslation],
   )
 
   const recognitionLang = autoDetect
@@ -132,6 +165,7 @@ export function useRealtimeVoiceTranslation(
     shouldRestartRef.current = true
     lastFromRef.current = langA
     lastFinalPhraseRef.current = ''
+    lastSpokenTranslationRef.current = ''
     setActiveFrom(langA)
     setActiveTo(langB)
     setInterimOriginal('')
@@ -158,12 +192,9 @@ export function useRealtimeVoiceTranslation(
       }
 
       if (finalChunk.trim()) {
-        setInterimOriginal('')
-        setInterimTranslated('')
-        void runTranslation(finalChunk)
+        void runTranslation(finalChunk, true)
       } else if (interim.trim()) {
-        setInterimOriginal(interim)
-        setInterimTranslated('')
+        scheduleInterimTranslation(interim)
       }
     }
 
@@ -198,7 +229,7 @@ export function useRealtimeVoiceTranslation(
       setError('No se pudo iniciar el micrófono')
       setListening(false)
     }
-  }, [langA, langB, recognitionLang, runTranslation])
+  }, [langA, langB, recognitionLang, runTranslation, scheduleInterimTranslation])
 
   useEffect(() => {
     setSupported(!!getSpeechRecognitionCtor())
@@ -218,6 +249,9 @@ export function useRealtimeVoiceTranslation(
   useEffect(() => {
     return () => {
       shouldRestartRef.current = false
+      if (debounceRef.current !== null) {
+        window.clearTimeout(debounceRef.current)
+      }
       recognitionRef.current?.abort()
       window.speechSynthesis.cancel()
     }
@@ -228,6 +262,7 @@ export function useRealtimeVoiceTranslation(
     setInterimOriginal('')
     setInterimTranslated('')
     lastFinalPhraseRef.current = ''
+    lastSpokenTranslationRef.current = ''
   }, [])
 
   return {
