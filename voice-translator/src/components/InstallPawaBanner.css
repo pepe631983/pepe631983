@@ -1,0 +1,52 @@
+.install-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1rem 1.15rem;
+  border-radius: 14px;
+  border: 1px solid rgba(96, 165, 250, 0.45);
+  background: linear-gradient(
+    135deg,
+    rgba(37, 99, 235, 0.22),
+    rgba(15, 20, 25, 0.9)
+  );
+}
+
+.install-banner strong {
+  display: block;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+}
+
+.install-banner p {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.install-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.install-primary {
+  border: none;
+  border-radius: 10px;
+  padding: 0.55rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: #2563eb;
+  color: white;
+}
+
+.install-dismiss {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.55rem 0.85rem;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
