@@ -3,12 +3,13 @@ import {
   fixEnEsDirection,
   resolveTranslationPair,
 } from '../lib/detectLanguage'
-import { dualSpeechTag, speechTagForCode } from '../lib/languages'
+import { speechTagForCode } from '../lib/languages'
 import {
   speakTranslationText,
   startSpeechKeepAlive,
   stopSpeechKeepAlive,
 } from '../lib/speech'
+import { isTranslatablePhrase } from '../lib/phraseQuality'
 import { buildTranslationContext, translateText } from '../lib/translate'
 
 export type TranslationSegment = {
@@ -51,13 +52,13 @@ export function useRealtimeVoiceTranslation(
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const shouldRestartRef = useRef(false)
   const pausingForTtsRef = useRef(false)
-  const interimRunIdRef = useRef(0)
   const finalRunIdRef = useRef(0)
-  const debounceRef = useRef<number | null>(null)
   const interimFinalizeRef = useRef<number | null>(null)
   const latestInterimRef = useRef('')
   const conversationModeRef = useRef(conversationMode)
   const lastFromRef = useRef(langA)
+  /** Modelo acústico del micrófono (un idioma a la vez, alternando turnos). */
+  const listenLangCodeRef = useRef(langB)
   const lastFinalPhraseRef = useRef('')
   const lastSpokenKeyRef = useRef('')
   const speakTranslationRef = useRef(speakTranslation)
@@ -74,21 +75,23 @@ export function useRealtimeVoiceTranslation(
     segmentsRef.current = segments
   }, [segments])
 
-  const recognitionLang = autoDetect
-    ? dualSpeechTag(langA, langB)
-    : speechTagForCode(langA)
+  const micSpeechTag = useCallback(() => {
+    const smart = autoDetect || conversationModeRef.current
+    if (!smart) return speechTagForCode(langA)
+    return speechTagForCode(listenLangCodeRef.current)
+  }, [autoDetect, langA])
 
   const resumeListening = useCallback(() => {
     if (!shouldRestartRef.current || pausingForTtsRef.current) return
     const recognition = recognitionRef.current
     if (!recognition) return
     try {
-      recognition.lang = recognitionLang
+      recognition.lang = micSpeechTag()
       recognition.start()
     } catch {
       /* onend reintentará */
     }
-  }, [recognitionLang])
+  }, [micSpeechTag])
 
   const speak = useCallback(
     (text: string, langCode: string, original: string) => {
@@ -120,18 +123,19 @@ export function useRealtimeVoiceTranslation(
         return { from: langA, to: langB }
       }
       const pair = resolveTranslationPair(text, langA, langB, lastFromRef.current)
-      lastFromRef.current = pair.from
+      if (isTranslatablePhrase(text)) {
+        lastFromRef.current = pair.from
+      }
       return pair
     },
     [autoDetect, conversationMode, langA, langB],
   )
 
-  const cancelInterimWork = useCallback(() => {
-    if (debounceRef.current !== null) {
-      window.clearTimeout(debounceRef.current)
-      debounceRef.current = null
+  const clearInterimFinalize = useCallback(() => {
+    if (interimFinalizeRef.current !== null) {
+      window.clearTimeout(interimFinalizeRef.current)
+      interimFinalizeRef.current = null
     }
-    interimRunIdRef.current += 1
   }, [])
 
   const runTranslation = useCallback(
@@ -145,105 +149,92 @@ export function useRealtimeVoiceTranslation(
         return
       }
 
-      if (isFinal) {
-        cancelInterimWork()
-      }
-
-      const runId = isFinal
-        ? ++finalRunIdRef.current
-        : ++interimRunIdRef.current
-
-      let { from, to } = pickLanguages(trimmed)
+      const { from, to } = pickLanguages(trimmed)
       setActiveFrom(from)
       setActiveTo(to)
+
+      if (!isFinal) {
+        setInterimOriginal(trimmed)
+        setInterimTranslated('')
+        return
+      }
+
+      if (!isTranslatablePhrase(trimmed)) {
+        setInterimOriginal(trimmed)
+        setInterimTranslated('')
+        return
+      }
+
+      clearInterimFinalize()
+
+      const runId = ++finalRunIdRef.current
+
       setInterimOriginal(trimmed)
 
       try {
-        let translated = await translateText(trimmed, from, to, {
-          fastPreview: !isFinal,
-          context: isFinal
-            ? buildTranslationContext(segmentsRef.current)
-            : undefined,
+        let fromLang = from
+        let toLang = to
+        let translated = await translateText(trimmed, fromLang, toLang, {
+          fastPreview: false,
+          context: buildTranslationContext(segmentsRef.current, 2),
         })
 
         const fixed = fixEnEsDirection(
           trimmed,
           translated,
-          from,
-          to,
+          fromLang,
+          toLang,
           langA,
           langB,
         )
         if (fixed.needsRetranslate) {
-          from = fixed.from
-          to = fixed.to
-          setActiveFrom(from)
-          setActiveTo(to)
-          translated = await translateText(trimmed, from, to, {
-            fastPreview: !isFinal,
-            context: isFinal
-              ? buildTranslationContext(segmentsRef.current)
-              : undefined,
+          fromLang = fixed.from
+          toLang = fixed.to
+          setActiveFrom(fromLang)
+          setActiveTo(toLang)
+          translated = await translateText(trimmed, fromLang, toLang, {
+            fastPreview: false,
+            context: buildTranslationContext(segmentsRef.current, 2),
           })
         }
 
-        if (isFinal) {
-          if (runId !== finalRunIdRef.current) return
+        if (runId !== finalRunIdRef.current) return
 
-          setInterimTranslated(translated)
+        setInterimTranslated(translated)
 
-          const normalized = normalizePhrase(trimmed)
-          const isDuplicate = normalized === lastFinalPhraseRef.current
-          lastFinalPhraseRef.current = normalized
+        const normalized = normalizePhrase(trimmed)
+        const isDuplicate = normalized === lastFinalPhraseRef.current
+        lastFinalPhraseRef.current = normalized
 
-          if (!isDuplicate) {
-            setSegments((prev) => [
-              ...prev,
-              {
-                id: crypto.randomUUID(),
-                original: trimmed,
-                translated,
-                fromLang: from,
-                toLang: to,
-                isFinal: true,
-              },
-            ])
-          }
-
-          speak(translated, to, trimmed)
-
-          setInterimOriginal('')
-          setInterimTranslated('')
-        } else {
-          if (runId !== interimRunIdRef.current) return
-          setInterimTranslated(translated)
+        if (!isDuplicate) {
+          setSegments((prev) => [
+            ...prev,
+            {
+              id: crypto.randomUUID(),
+              original: trimmed,
+              translated,
+              fromLang: fromLang,
+              toLang: toLang,
+              isFinal: true,
+            },
+          ])
         }
+
+        listenLangCodeRef.current = toLang
+        if (recognitionRef.current && (autoDetect || conversationModeRef.current)) {
+          recognitionRef.current.lang = speechTagForCode(toLang)
+        }
+
+        speak(translated, toLang, trimmed)
+
+        setInterimOriginal('')
+        setInterimTranslated('')
       } catch (e) {
-        if (isFinal && runId !== finalRunIdRef.current) return
-        if (!isFinal && runId !== interimRunIdRef.current) return
+        if (runId !== finalRunIdRef.current) return
         setError(e instanceof Error ? e.message : 'Error de traducción')
       }
     },
-    [cancelInterimWork, pickLanguages, speak],
-  )
-
-  const clearInterimFinalize = useCallback(() => {
-    if (interimFinalizeRef.current !== null) {
-      window.clearTimeout(interimFinalizeRef.current)
-      interimFinalizeRef.current = null
-    }
-  }, [])
-
-  const scheduleInterimTranslation = useCallback(
-    (text: string) => {
-      if (debounceRef.current !== null) {
-        window.clearTimeout(debounceRef.current)
-      }
-      debounceRef.current = window.setTimeout(() => {
-        void runTranslation(text, false)
-      }, 400)
-    },
-    [runTranslation],
+    [autoDetect, clearInterimFinalize, langA, langB, pickLanguages, speak],
   )
 
   const scheduleInterimFinalize = useCallback(() => {
@@ -251,10 +242,10 @@ export function useRealtimeVoiceTranslation(
     clearInterimFinalize()
     interimFinalizeRef.current = window.setTimeout(() => {
       const trimmed = latestInterimRef.current.trim()
-      if (trimmed.length >= 2) {
+      if (isTranslatablePhrase(trimmed)) {
         void runTranslation(trimmed, true)
       }
-    }, 1400)
+    }, 1800)
   }, [clearInterimFinalize, runTranslation])
 
   const stop = useCallback(() => {
@@ -279,6 +270,7 @@ export function useRealtimeVoiceTranslation(
     shouldRestartRef.current = true
     pausingForTtsRef.current = false
     lastFromRef.current = langA
+    listenLangCodeRef.current = langB
     lastFinalPhraseRef.current = ''
     lastSpokenKeyRef.current = ''
     latestInterimRef.current = ''
@@ -291,7 +283,7 @@ export function useRealtimeVoiceTranslation(
     const recognition = new Ctor()
     recognition.continuous = true
     recognition.interimResults = true
-    recognition.lang = recognitionLang
+    recognition.lang = micSpeechTag()
     recognition.maxAlternatives = 1
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
@@ -313,8 +305,7 @@ export function useRealtimeVoiceTranslation(
         void runTranslation(finalChunk, true)
       } else if (interim.trim()) {
         latestInterimRef.current = interim
-        setInterimOriginal(interim)
-        scheduleInterimTranslation(interim)
+        void runTranslation(interim, false)
         scheduleInterimFinalize()
       }
     }
@@ -333,7 +324,7 @@ export function useRealtimeVoiceTranslation(
       if (pausingForTtsRef.current) return
       if (shouldRestartRef.current) {
         try {
-          recognition.lang = recognitionLang
+          recognition.lang = micSpeechTag()
           recognition.start()
         } catch {
           setListening(false)
@@ -356,9 +347,8 @@ export function useRealtimeVoiceTranslation(
   }, [
     langA,
     langB,
-    recognitionLang,
+    micSpeechTag,
     runTranslation,
-    scheduleInterimTranslation,
     scheduleInterimFinalize,
     clearInterimFinalize,
   ])
@@ -368,22 +358,20 @@ export function useRealtimeVoiceTranslation(
   }, [])
 
   useEffect(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.lang = recognitionLang
+    if (recognitionRef.current && !listening) {
+      recognitionRef.current.lang = micSpeechTag()
     }
     if (!listening) {
       lastFromRef.current = langA
+      listenLangCodeRef.current = langB
       setActiveFrom(langA)
       setActiveTo(langB)
     }
-  }, [langA, langB, recognitionLang, listening])
+  }, [langA, langB, listening, micSpeechTag])
 
   useEffect(() => {
     return () => {
       shouldRestartRef.current = false
-      if (debounceRef.current !== null) {
-        window.clearTimeout(debounceRef.current)
-      }
       clearInterimFinalize()
       stopSpeechKeepAlive()
       recognitionRef.current?.abort()

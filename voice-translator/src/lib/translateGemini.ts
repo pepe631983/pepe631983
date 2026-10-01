@@ -29,6 +29,8 @@ export async function translateWithGemini(
 Traduce del ${fromName} al ${toName}.
 
 Reglas:
+- El texto puede venir de reconocimiento de voz con errores; infiere la frase más probable en ${fromName} antes de traducir.
+- Si el texto es claramente basura o no tiene sentido, devuelve una traducción corta coherente con lo que probablemente quisieron decir, o la mejor interpretación posible.
 - Suena natural, fluida y nativa en ${toName}.
 - Conserva el tono (formal/informal) y el significado exacto.
 - Adapta modismos (no traducción literal palabra por palabra).

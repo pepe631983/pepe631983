@@ -252,7 +252,8 @@ function App() {
             <div className="pane accent">
               <h3>Traducción</h3>
               <p className={interimTranslated ? 'interim' : 'placeholder'}>
-                {interimTranslated || 'La traducción aparecerá aquí en vivo…'}
+                {interimTranslated ||
+                  'Traducción al terminar la frase (más coherente)…'}
               </p>
             </div>
           </div>
