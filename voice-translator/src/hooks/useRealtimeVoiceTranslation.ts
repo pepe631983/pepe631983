@@ -3,7 +3,7 @@ import {
   fixEnEsDirection,
   resolveTranslationPair,
 } from '../lib/detectLanguage'
-import { speechTagForCode } from '../lib/languages'
+import { dualSpeechTag, speechTagForCode } from '../lib/languages'
 import {
   speakTranslationText,
   startSpeechKeepAlive,
@@ -56,9 +56,8 @@ export function useRealtimeVoiceTranslation(
   const interimFinalizeRef = useRef<number | null>(null)
   const latestInterimRef = useRef('')
   const conversationModeRef = useRef(conversationMode)
+  const autoDetectRef = useRef(autoDetect)
   const lastFromRef = useRef(langA)
-  /** Modelo acústico del micrófono (un idioma a la vez, alternando turnos). */
-  const listenLangCodeRef = useRef(langB)
   const lastFinalPhraseRef = useRef('')
   const lastSpokenKeyRef = useRef('')
   const speakTranslationRef = useRef(speakTranslation)
@@ -72,24 +71,46 @@ export function useRealtimeVoiceTranslation(
   }, [conversationMode])
 
   useEffect(() => {
+    autoDetectRef.current = autoDetect
+  }, [autoDetect])
+
+  useEffect(() => {
     segmentsRef.current = segments
   }, [segments])
 
   const micSpeechTag = useCallback(() => {
     const smart = autoDetect || conversationModeRef.current
     if (!smart) return speechTagForCode(langA)
-    return speechTagForCode(listenLangCodeRef.current)
-  }, [autoDetect, langA])
+    return dualSpeechTag(langA, langB)
+  }, [autoDetect, langA, langB])
 
   const resumeListening = useCallback(() => {
     if (!shouldRestartRef.current || pausingForTtsRef.current) return
     const recognition = recognitionRef.current
     if (!recognition) return
-    try {
+
+    const tryStart = () => {
       recognition.lang = micSpeechTag()
       recognition.start()
+      setListening(true)
+    }
+
+    try {
+      tryStart()
     } catch {
-      /* onend reintentará */
+      try {
+        recognition.stop()
+      } catch {
+        /* ignore */
+      }
+      window.setTimeout(() => {
+        if (!shouldRestartRef.current || pausingForTtsRef.current) return
+        try {
+          tryStart()
+        } catch {
+          setListening(false)
+        }
+      }, 300)
     }
   }, [micSpeechTag])
 
@@ -108,7 +129,14 @@ export function useRealtimeVoiceTranslation(
         /* ignore */
       }
 
+      const safetyResume = window.setTimeout(() => {
+        if (!pausingForTtsRef.current) return
+        pausingForTtsRef.current = false
+        resumeListening()
+      }, 12000)
+
       speakTranslationText(text, langCode, () => {
+        window.clearTimeout(safetyResume)
         pausingForTtsRef.current = false
         window.setTimeout(() => resumeListening(), 250)
       })
@@ -220,11 +248,6 @@ export function useRealtimeVoiceTranslation(
           ])
         }
 
-        listenLangCodeRef.current = toLang
-        if (recognitionRef.current && (autoDetect || conversationModeRef.current)) {
-          recognitionRef.current.lang = speechTagForCode(toLang)
-        }
-
         speak(translated, toLang, trimmed)
 
         setInterimOriginal('')
@@ -238,14 +261,17 @@ export function useRealtimeVoiceTranslation(
   )
 
   const scheduleInterimFinalize = useCallback(() => {
-    if (!conversationModeRef.current) return
+    const smart =
+      autoDetectRef.current || conversationModeRef.current
+    if (!smart) return
     clearInterimFinalize()
     interimFinalizeRef.current = window.setTimeout(() => {
       const trimmed = latestInterimRef.current.trim()
-      if (isTranslatablePhrase(trimmed)) {
-        void runTranslation(trimmed, true)
-      }
-    }, 1800)
+      if (!isTranslatablePhrase(trimmed)) return
+      const normalized = normalizePhrase(trimmed)
+      if (normalized === lastFinalPhraseRef.current) return
+      void runTranslation(trimmed, true)
+    }, 1600)
   }, [clearInterimFinalize, runTranslation])
 
   const stop = useCallback(() => {
@@ -270,7 +296,6 @@ export function useRealtimeVoiceTranslation(
     shouldRestartRef.current = true
     pausingForTtsRef.current = false
     lastFromRef.current = langA
-    listenLangCodeRef.current = langB
     lastFinalPhraseRef.current = ''
     lastSpokenKeyRef.current = ''
     latestInterimRef.current = ''
@@ -363,7 +388,6 @@ export function useRealtimeVoiceTranslation(
     }
     if (!listening) {
       lastFromRef.current = langA
-      listenLangCodeRef.current = langB
       setActiveFrom(langA)
       setActiveTo(langB)
     }
