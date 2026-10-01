@@ -1,6 +1,8 @@
 import { speechTagForCode } from './languages'
 
 let voicesCache: SpeechSynthesisVoice[] = []
+let keepAliveTimer: number | null = null
+let audioContext: AudioContext | null = null
 
 function refreshVoices(): SpeechSynthesisVoice[] {
   voicesCache = window.speechSynthesis.getVoices()
@@ -14,11 +16,49 @@ if (typeof window !== 'undefined') {
   }
 }
 
-/** Debe llamarse desde un clic del usuario (p. ej. Iniciar) para que Chrome permita TTS. */
+/** Desbloquea audio/TTS en el mismo gesto del usuario (clic en Iniciar). */
+export function unlockAudioForSession(): void {
+  primeSpeechSynthesis()
+
+  try {
+    if (!audioContext) {
+      audioContext = new AudioContext()
+    }
+    void audioContext.resume()
+  } catch {
+    /* ignore */
+  }
+
+  const synth = window.speechSynthesis
+  const warmup = new SpeechSynthesisUtterance(' ')
+  warmup.volume = 0.01
+  warmup.rate = 10
+  synth.speak(warmup)
+}
+
 export function primeSpeechSynthesis(): void {
   const synth = window.speechSynthesis
   refreshVoices()
   if (synth.paused) synth.resume()
+}
+
+/** Evita que Chrome congele la cola de speechSynthesis durante sesiones largas. */
+export function startSpeechKeepAlive(): void {
+  stopSpeechKeepAlive()
+  keepAliveTimer = window.setInterval(() => {
+    const synth = window.speechSynthesis
+    if (synth.speaking) {
+      synth.pause()
+      synth.resume()
+    }
+  }, 4000)
+}
+
+export function stopSpeechKeepAlive(): void {
+  if (keepAliveTimer !== null) {
+    window.clearInterval(keepAliveTimer)
+    keepAliveTimer = null
+  }
 }
 
 function voiceForLang(langCode: string): SpeechSynthesisVoice | undefined {
@@ -41,11 +81,11 @@ export function speakTranslationText(
   text: string,
   langCode: string,
   onDone?: () => void,
-): void {
+): boolean {
   const trimmed = text.trim()
   if (!trimmed) {
     onDone?.()
-    return
+    return false
   }
 
   primeSpeechSynthesis()
@@ -55,17 +95,22 @@ export function speakTranslationText(
 
   const utterance = new SpeechSynthesisUtterance(trimmed)
   utterance.lang = speechTagForCode(langCode)
-  utterance.rate = 1
+  utterance.rate = 0.95
+  utterance.volume = 1
   const voice = voiceForLang(langCode)
   if (voice) utterance.voice = voice
 
-  const finish = () => onDone?.()
+  let finished = false
+  const finish = () => {
+    if (finished) return
+    finished = true
+    onDone?.()
+  }
   utterance.onend = finish
   utterance.onerror = finish
 
-  window.setTimeout(() => {
-    synth.speak(utterance)
-  }, 50)
+  synth.speak(utterance)
+  return true
 }
 
 const SPEAK_PREF_KEY = 'pawa.speakTranslation.v2'

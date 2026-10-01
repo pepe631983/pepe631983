@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import {
   loadSpeakPreference,
-  primeSpeechSynthesis,
   saveSpeakPreference,
+  unlockAudioForSession,
 } from './lib/speech'
 import { InstallPawaBanner } from './components/InstallPawaBanner'
 import { PwaUpdateToast } from './components/PwaUpdateToast'
@@ -161,7 +161,7 @@ function App() {
                 const on = e.target.checked
                 setSpeakOut(on)
                 saveSpeakPreference(on)
-                if (on) primeSpeechSynthesis()
+                if (on) unlockAudioForSession()
               }}
             />
             Reproducir traducción con voz sintética (una vez por frase)
@@ -173,7 +173,7 @@ function App() {
                 type="button"
                 className="mic-btn start"
                 onClick={() => {
-                  primeSpeechSynthesis()
+                  unlockAudioForSession()
                   start()
                 }}
                 disabled={!supported || langA === langB}
