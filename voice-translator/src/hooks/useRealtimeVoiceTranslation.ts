@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { detectBetween, resolveTranslationPair } from '../lib/detectLanguage'
+import { resolveTranslationPair } from '../lib/detectLanguage'
 import { dualSpeechTag, speechTagForCode } from '../lib/languages'
 import { speakTranslationText } from '../lib/speech'
 import { translateText } from '../lib/translate'
@@ -29,6 +29,7 @@ export function useRealtimeVoiceTranslation(
   langB: string,
   autoDetect: boolean,
   speakTranslation: boolean,
+  conversationMode: boolean,
 ) {
   const [listening, setListening] = useState(false)
   const [supported, setSupported] = useState(true)
@@ -43,6 +44,8 @@ export function useRealtimeVoiceTranslation(
   const shouldRestartRef = useRef(false)
   const translateRequestRef = useRef(0)
   const debounceRef = useRef<number | null>(null)
+  const interimFinalizeRef = useRef<number | null>(null)
+  const conversationModeRef = useRef(conversationMode)
   const lastFromRef = useRef(langA)
   const lastFinalPhraseRef = useRef('')
   const lastSpokenKeyRef = useRef('')
@@ -51,6 +54,10 @@ export function useRealtimeVoiceTranslation(
   useEffect(() => {
     speakTranslationRef.current = speakTranslation
   }, [speakTranslation])
+
+  useEffect(() => {
+    conversationModeRef.current = conversationMode
+  }, [conversationMode])
 
   const recognitionLang = autoDetect
     ? dualSpeechTag(langA, langB)
@@ -91,9 +98,7 @@ export function useRealtimeVoiceTranslation(
         return { from: langA, to: langB }
       }
       const pair = resolveTranslationPair(text, langA, langB, lastFromRef.current)
-      if (detectBetween(text, langA, langB)) {
-        lastFromRef.current = pair.from
-      }
+      lastFromRef.current = pair.from
       return pair
     },
     [autoDetect, langA, langB],
@@ -154,6 +159,13 @@ export function useRealtimeVoiceTranslation(
     [pickLanguages, speak],
   )
 
+  const clearInterimFinalize = useCallback(() => {
+    if (interimFinalizeRef.current !== null) {
+      window.clearTimeout(interimFinalizeRef.current)
+      interimFinalizeRef.current = null
+    }
+  }, [])
+
   const scheduleInterimTranslation = useCallback(
     (text: string) => {
       if (debounceRef.current !== null) {
@@ -164,6 +176,21 @@ export function useRealtimeVoiceTranslation(
       }, 400)
     },
     [runTranslation],
+  )
+
+  /** Voz lejana (otra persona) a veces no marca isFinal; cerramos la frase tras una pausa. */
+  const scheduleInterimFinalize = useCallback(
+    (text: string) => {
+      if (!conversationModeRef.current) return
+      clearInterimFinalize()
+      interimFinalizeRef.current = window.setTimeout(() => {
+        const trimmed = text.trim()
+        if (trimmed.length >= 2) {
+          void runTranslation(trimmed, true)
+        }
+      }, 1400)
+    },
+    [clearInterimFinalize, runTranslation],
   )
 
   const stop = useCallback(() => {
@@ -213,9 +240,12 @@ export function useRealtimeVoiceTranslation(
       }
 
       if (finalChunk.trim()) {
+        clearInterimFinalize()
         void runTranslation(finalChunk, true)
       } else if (interim.trim()) {
+        setInterimOriginal(interim)
         scheduleInterimTranslation(interim)
+        scheduleInterimFinalize(interim)
       }
     }
 
@@ -250,7 +280,15 @@ export function useRealtimeVoiceTranslation(
       setError('No se pudo iniciar el micrófono')
       setListening(false)
     }
-  }, [langA, langB, recognitionLang, runTranslation, scheduleInterimTranslation])
+  }, [
+    langA,
+    langB,
+    recognitionLang,
+    runTranslation,
+    scheduleInterimTranslation,
+    scheduleInterimFinalize,
+    clearInterimFinalize,
+  ])
 
   useEffect(() => {
     setSupported(!!getSpeechRecognitionCtor())
@@ -273,6 +311,7 @@ export function useRealtimeVoiceTranslation(
       if (debounceRef.current !== null) {
         window.clearTimeout(debounceRef.current)
       }
+      clearInterimFinalize()
       recognitionRef.current?.abort()
       window.speechSynthesis.cancel()
     }

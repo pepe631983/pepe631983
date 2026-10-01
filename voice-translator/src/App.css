@@ -124,12 +124,18 @@
   cursor: pointer;
 }
 
-.toggle.auto-detect {
+.toggle.auto-detect,
+.toggle.conversation {
   align-items: flex-start;
   padding: 0.75rem 0.85rem;
   border-radius: 10px;
   background: rgba(37, 99, 235, 0.12);
   border: 1px solid rgba(96, 165, 250, 0.25);
+}
+
+.toggle.conversation {
+  background: rgba(34, 211, 238, 0.08);
+  border-color: rgba(34, 211, 238, 0.28);
 }
 
 .toggle.auto-detect small {

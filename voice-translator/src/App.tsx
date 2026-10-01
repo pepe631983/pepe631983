@@ -14,6 +14,7 @@ function App() {
   const [langA, setLangA] = useState('es')
   const [langB, setLangB] = useState('en')
   const [autoDetect, setAutoDetect] = useState(true)
+  const [conversationMode, setConversationMode] = useState(true)
   const [speakOut, setSpeakOut] = useState(loadSpeakPreference)
 
   const {
@@ -29,7 +30,13 @@ function App() {
     stop,
     clearHistory,
     setError,
-  } = useRealtimeVoiceTranslation(langA, langB, autoDetect, speakOut)
+  } = useRealtimeVoiceTranslation(
+    langA,
+    langB,
+    autoDetect,
+    speakOut,
+    conversationMode,
+  )
 
   const swapLanguages = () => {
     setLangA(langB)
@@ -73,6 +80,22 @@ function App() {
               <strong>Modo intérprete automático</strong>
               <small>
                 Detecta el idioma y traduce al otro sin pulsar intercambiar
+              </small>
+            </span>
+          </label>
+
+          <label className="toggle conversation">
+            <input
+              type="checkbox"
+              checked={conversationMode}
+              onChange={(e) => setConversationMode(e.target.checked)}
+              disabled={listening}
+            />
+            <span>
+              <strong>Conversación con otra persona</strong>
+              <small>
+                Captura inglés/español del altavoz o de quien está frente al
+                micrófono; traduce tras una breve pausa
               </small>
             </span>
           </label>
