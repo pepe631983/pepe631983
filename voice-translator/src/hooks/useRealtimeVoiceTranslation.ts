@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { resolveTranslationPair } from '../lib/detectLanguage'
+import {
+  fixEnEsDirection,
+  resolveTranslationPair,
+} from '../lib/detectLanguage'
 import { dualSpeechTag, speechTagForCode } from '../lib/languages'
 import {
   speakTranslationText,
@@ -112,14 +115,15 @@ export function useRealtimeVoiceTranslation(
 
   const pickLanguages = useCallback(
     (text: string) => {
-      if (!autoDetect) {
+      const smartDirection = autoDetect || conversationMode
+      if (!smartDirection) {
         return { from: langA, to: langB }
       }
       const pair = resolveTranslationPair(text, langA, langB, lastFromRef.current)
       lastFromRef.current = pair.from
       return pair
     },
-    [autoDetect, langA, langB],
+    [autoDetect, conversationMode, langA, langB],
   )
 
   const cancelInterimWork = useCallback(() => {
@@ -149,18 +153,39 @@ export function useRealtimeVoiceTranslation(
         ? ++finalRunIdRef.current
         : ++interimRunIdRef.current
 
-      const { from, to } = pickLanguages(trimmed)
+      let { from, to } = pickLanguages(trimmed)
       setActiveFrom(from)
       setActiveTo(to)
       setInterimOriginal(trimmed)
 
       try {
-        const translated = await translateText(trimmed, from, to, {
+        let translated = await translateText(trimmed, from, to, {
           fastPreview: !isFinal,
           context: isFinal
             ? buildTranslationContext(segmentsRef.current)
             : undefined,
         })
+
+        const fixed = fixEnEsDirection(
+          trimmed,
+          translated,
+          from,
+          to,
+          langA,
+          langB,
+        )
+        if (fixed.needsRetranslate) {
+          from = fixed.from
+          to = fixed.to
+          setActiveFrom(from)
+          setActiveTo(to)
+          translated = await translateText(trimmed, from, to, {
+            fastPreview: !isFinal,
+            context: isFinal
+              ? buildTranslationContext(segmentsRef.current)
+              : undefined,
+          })
+        }
 
         if (isFinal) {
           if (runId !== finalRunIdRef.current) return

@@ -103,7 +103,9 @@ function App() {
 
           <div className="lang-row">
             <label className="field">
-              <span>{autoDetect ? 'Idioma 1' : 'Idioma que hablas'}</span>
+              <span>
+                {autoDetect || conversationMode ? 'Idioma 1' : 'Idioma que hablas'}
+              </span>
               <select
                 value={langA}
                 onChange={(e) => setLangA(e.target.value)}
@@ -117,7 +119,7 @@ function App() {
               </select>
             </label>
 
-            {!autoDetect && (
+            {!autoDetect && !conversationMode && (
               <button
                 type="button"
                 className="swap-btn"
@@ -130,10 +132,16 @@ function App() {
               </button>
             )}
 
-            {autoDetect && <div className="lang-auto-pill" aria-hidden>↔</div>}
+            {(autoDetect || conversationMode) && (
+              <div className="lang-auto-pill" aria-hidden>
+                ↔
+              </div>
+            )}
 
             <label className="field">
-              <span>{autoDetect ? 'Idioma 2' : 'Traducir a'}</span>
+              <span>
+                {autoDetect || conversationMode ? 'Idioma 2' : 'Traducir a'}
+              </span>
               <select
                 value={langB}
                 onChange={(e) => setLangB(e.target.value)}
@@ -148,9 +156,19 @@ function App() {
             </label>
           </div>
 
-          {autoDetect && listening && (
+          {(autoDetect || conversationMode) && listening && (
             <p className="direction-live" aria-live="polite">
-              Ahora: {labelForCode(activeFrom)} → {labelForCode(activeTo)}
+              Ahora: {labelForCode(activeFrom)} → {labelForCode(activeTo)} (voz
+              en {labelForCode(activeTo)})
+            </p>
+          )}
+
+          {!autoDetect && !conversationMode && (
+            <p className="banner warn">
+              Modo fijo: traduce solo de {labelForCode(langA)} a{' '}
+              {labelForCode(langB)}. Si te hablan en inglés y quieres oír
+              español, activa <strong>Modo intérprete</strong> o{' '}
+              <strong>Conversación</strong>.
             </p>
           )}
 

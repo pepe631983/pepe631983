@@ -151,3 +151,47 @@ export function resolveTranslationPair(
   const from = lastFrom === langA || lastFrom === langB ? lastFrom : langA
   return { from, to: from === langA ? langB : langA }
 }
+
+export function enEsCodes(
+  langA: string,
+  langB: string,
+): { en: string; es: string } | null {
+  if (!codeInPair('en', langA, langB) || !codeInPair('es', langA, langB)) {
+    return null
+  }
+  return {
+    en: langA === 'en' ? langA : langB,
+    es: langA === 'es' ? langA : langB,
+  }
+}
+
+/** Corrige traducción/voz cuando el resultado quedó en el idioma equivocado. */
+export function fixEnEsDirection(
+  original: string,
+  translated: string,
+  from: string,
+  to: string,
+  langA: string,
+  langB: string,
+): { from: string; to: string; needsRetranslate: boolean } {
+  const codes = enEsCodes(langA, langB)
+  if (!codes) return { from, to, needsRetranslate: false }
+
+  const inputEn =
+    looksLikelyEnglish(original) && !looksLikelySpanish(original)
+  const inputEs =
+    looksLikelySpanish(original) && !looksLikelyEnglish(original)
+  const outEn =
+    looksLikelyEnglish(translated) && !looksLikelySpanish(translated)
+  const outEs =
+    looksLikelySpanish(translated) && !looksLikelyEnglish(translated)
+
+  if (inputEn && outEn && to !== codes.es) {
+    return { from: codes.en, to: codes.es, needsRetranslate: true }
+  }
+  if (inputEs && outEs && to !== codes.en) {
+    return { from: codes.es, to: codes.en, needsRetranslate: true }
+  }
+
+  return { from, to, needsRetranslate: false }
+}
