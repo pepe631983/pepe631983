@@ -1,3 +1,4 @@
+import { SUGGESTED_BACKEND_URL } from './defaultBackend'
 import {
   loadBackendUrl,
   loadGeminiApiKey,
@@ -23,6 +24,71 @@ function cacheKey(
   return `${mode}|${from}|${to}|${text.trim().toLowerCase()}`
 }
 
+function effectiveBackendUrl(): string {
+  const stored = loadBackendUrl()
+  if (stored.startsWith('https://')) return stored
+  return SUGGESTED_BACKEND_URL
+}
+
+async function runTranslationPipeline(
+  trimmed: string,
+  from: string,
+  to: string,
+  context: string | undefined,
+): Promise<{ text: string; mode: string }> {
+  const engine = loadTranslationEngine()
+  const backendUrl = effectiveBackendUrl()
+  const geminiKey = loadGeminiApiKey()
+  const errors: string[] = []
+
+  const tryCloud =
+    engine === 'cloud' &&
+    backendUrl.startsWith('https://')
+  const tryGemini =
+    geminiKey.length > 8 &&
+    (engine === 'gemini' || engine === 'cloud')
+
+  if (tryCloud) {
+    try {
+      const result = await translateViaBackend(backendUrl, trimmed, from, to)
+      return { text: result.translated, mode: `cloud:${result.engine}` }
+    } catch (e) {
+      errors.push(e instanceof Error ? e.message : 'cloud')
+    }
+  }
+
+  if (tryGemini) {
+    try {
+      const translated = await translateWithGemini(
+        trimmed,
+        from,
+        to,
+        geminiKey,
+        context,
+      )
+      return { text: translated, mode: 'gemini' }
+    } catch (e) {
+      errors.push(e instanceof Error ? e.message : 'gemini')
+    }
+  }
+
+  if (engine === 'gemini' && !tryGemini) {
+    throw new Error('Configura tu clave API de Gemini en Calidad de traducción.')
+  }
+
+  try {
+    const translated = await translateWithMyMemory(trimmed, from, to)
+    return { text: translated, mode: 'mymemory' }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'MyMemory'
+    throw new Error(
+      errors.length
+        ? `${msg} (tampoco funcionó: ${errors.join('; ')})`
+        : msg,
+    )
+  }
+}
+
 export async function translateText(
   text: string,
   from: string,
@@ -31,51 +97,24 @@ export async function translateText(
 ): Promise<string> {
   const trimmed = text.trim()
   if (!trimmed || from === to) return trimmed
-
-  const engine = loadTranslationEngine()
-  const backendUrl = loadBackendUrl()
-  const geminiKey = loadGeminiApiKey()
-
-  let mode: string
-  if (engine === 'cloud' && backendUrl.startsWith('https://') && !options.fastPreview) {
-    mode = 'cloud'
-  } else if (engine === 'gemini' && geminiKey.length > 8 && !options.fastPreview) {
-    mode = 'gemini'
-  } else {
-    mode = 'mymemory'
+  if (options.fastPreview) {
+    return translateWithMyMemory(trimmed, from, to)
   }
 
-  const key = cacheKey(trimmed, from, to, mode)
+  const engine = loadTranslationEngine()
+  const key = cacheKey(trimmed, from, to, engine)
   const cached = cache.get(key)
   if (cached) return cached
 
-  let translated: string
+  const preview = await runTranslationPipeline(
+    trimmed,
+    from,
+    to,
+    options.context,
+  )
 
-  if (mode === 'cloud') {
-    try {
-      const result = await translateViaBackend(backendUrl, trimmed, from, to)
-      translated = result.translated
-    } catch {
-      translated = await translateWithMyMemory(trimmed, from, to)
-    }
-  } else if (mode === 'gemini') {
-    try {
-      translated = await translateWithGemini(
-        trimmed,
-        from,
-        to,
-        geminiKey,
-        options.context,
-      )
-    } catch {
-      translated = await translateWithMyMemory(trimmed, from, to)
-    }
-  } else {
-    translated = await translateWithMyMemory(trimmed, from, to)
-  }
-
-  cache.set(key, translated)
-  return translated
+  cache.set(key, preview.text)
+  return preview.text
 }
 
 export function buildTranslationContext(

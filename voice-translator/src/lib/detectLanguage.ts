@@ -38,14 +38,18 @@ export function looksLikelyEnglish(text: string): boolean {
   if (!trimmed) return false
   if (/[ñáéíóúü¿¡]/i.test(trimmed)) return false
 
+  const words = trimmed.split(/\s+/).filter(Boolean)
   const en = countMatches(trimmed, EN_MARKERS)
   const es = countMatches(trimmed, ES_MARKERS)
-  if (en > es) return true
+  if (en > es) {
+    if (words.length === 1 && en < 2) return false
+    return true
+  }
   if (es > 0) return false
 
   return (
-    /^[a-z0-9\s'.,!?@#$%-]+$/i.test(trimmed) &&
-    trimmed.split(/\s+/).filter(Boolean).length >= 1
+    words.length >= 2 &&
+    /^[a-z0-9\s'.,!?@#$%-]+$/i.test(trimmed)
   )
 }
 
@@ -165,6 +169,27 @@ export function enEsCodes(
   }
 }
 
+/** Fija par en/es cuando el texto deja claro el idioma de origen. */
+export function correctEnEsPair(
+  text: string,
+  from: string,
+  to: string,
+  langA: string,
+  langB: string,
+): { from: string; to: string } {
+  const codes = enEsCodes(langA, langB)
+  if (!codes) return { from, to }
+
+  const inputEn =
+    looksLikelyEnglish(text) && !looksLikelySpanish(text)
+  const inputEs =
+    looksLikelySpanish(text) && !looksLikelyEnglish(text)
+
+  if (inputEn) return { from: codes.en, to: codes.es }
+  if (inputEs) return { from: codes.es, to: codes.en }
+  return { from, to }
+}
+
 /** Corrige traducción/voz cuando el resultado quedó en el idioma equivocado. */
 export function fixEnEsDirection(
   original: string,
@@ -186,10 +211,24 @@ export function fixEnEsDirection(
   const outEs =
     looksLikelySpanish(translated) && !looksLikelyEnglish(translated)
 
-  if (inputEn && outEn && to !== codes.es) {
+  if (inputEn && from !== codes.en) {
     return { from: codes.en, to: codes.es, needsRetranslate: true }
   }
-  if (inputEs && outEs && to !== codes.en) {
+  if (inputEs && from !== codes.es) {
+    return { from: codes.es, to: codes.en, needsRetranslate: true }
+  }
+
+  if (inputEn && outEn && to === codes.es) {
+    return { from: codes.en, to: codes.es, needsRetranslate: true }
+  }
+  if (inputEs && outEs && to === codes.en) {
+    return { from: codes.es, to: codes.en, needsRetranslate: true }
+  }
+
+  if (inputEn && !outEs && to === codes.es && translated.length > 2) {
+    return { from: codes.en, to: codes.es, needsRetranslate: true }
+  }
+  if (inputEs && !outEn && to === codes.en && translated.length > 2) {
     return { from: codes.es, to: codes.en, needsRetranslate: true }
   }
 

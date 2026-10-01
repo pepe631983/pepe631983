@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
+  correctEnEsPair,
   fixEnEsDirection,
   resolveTranslationPair,
 } from '../lib/detectLanguage'
@@ -207,8 +208,12 @@ export function useRealtimeVoiceTranslation(
       setInterimOriginal(trimmed)
 
       try {
-        let fromLang = from
-        let toLang = to
+        const corrected = correctEnEsPair(trimmed, from, to, langA, langB)
+        let fromLang = corrected.from
+        let toLang = corrected.to
+        setActiveFrom(fromLang)
+        setActiveTo(toLang)
+
         let translated = await translateText(trimmed, fromLang, toLang, {
           fastPreview: false,
           context: buildTranslationContext(segmentsRef.current, 2),

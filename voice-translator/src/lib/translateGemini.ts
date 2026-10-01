@@ -29,11 +29,10 @@ export async function translateWithGemini(
 Traduce del ${fromName} al ${toName}.
 
 Reglas:
-- El texto puede venir de reconocimiento de voz con errores; infiere la frase más probable en ${fromName} antes de traducir.
-- Si el texto es claramente basura o no tiene sentido, devuelve una traducción corta coherente con lo que probablemente quisieron decir, o la mejor interpretación posible.
-- Suena natural, fluida y nativa en ${toName}.
-- Conserva el tono (formal/informal) y el significado exacto.
-- Adapta modismos (no traducción literal palabra por palabra).
+- El texto puede venir de voz; corrige solo errores obvios de transcripción (sin inventar ideas nuevas).
+- Traduce fielmente del ${fromName} al ${toName}; no cambies el sentido.
+- Suena natural y nativa en ${toName}, pero respeta el significado literal.
+- Conserva nombres, números y matices (formal/informal).
 - Respuesta breve, lista para pronunciar en voz alta.
 - Devuelve SOLO la traducción, sin comillas, sin explicación.
 ${context ? `\nContexto reciente de la conversación:\n${context}\n` : ''}
@@ -48,7 +47,7 @@ ${text}`
     body: JSON.stringify({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
-        temperature: 0.25,
+        temperature: 0.15,
         maxOutputTokens: 512,
       },
     }),

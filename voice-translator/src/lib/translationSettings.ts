@@ -1,3 +1,5 @@
+import { SUGGESTED_BACKEND_URL } from './defaultBackend'
+
 export type TranslationEngine = 'mymemory' | 'gemini' | 'cloud'
 
 const ENGINE_KEY = 'pawa.translation.engine'
@@ -45,7 +47,8 @@ export function saveBackendUrl(url: string): void {
 export function hasNaturalTranslation(): boolean {
   const engine = loadTranslationEngine()
   if (engine === 'cloud') {
-    return loadBackendUrl().startsWith('https://')
+    const url = loadBackendUrl() || SUGGESTED_BACKEND_URL
+    return url.startsWith('https://')
   }
   if (engine === 'gemini') {
     return loadGeminiApiKey().length > 8
@@ -54,5 +57,7 @@ export function hasNaturalTranslation(): boolean {
 }
 
 export function isCloudTranslationReady(): boolean {
-  return loadTranslationEngine() === 'cloud' && loadBackendUrl().startsWith('https://')
+  if (loadTranslationEngine() !== 'cloud') return false
+  const url = loadBackendUrl() || SUGGESTED_BACKEND_URL
+  return url.startsWith('https://')
 }
