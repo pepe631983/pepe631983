@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Video Sin Anuncios</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Video Sin Anuncios</h1>
+      <p class="sub">Cierra anuncios por ti mientras ves videos.</p>
+    </header>
+    <main>
+      <label class="row">
+        <span>Activado</span>
+        <input type="checkbox" id="enabled" checked />
+      </label>
+      <label class="row">
+        <span>Pulsar «Saltar» automáticamente</span>
+        <input type="checkbox" id="autoSkip" checked />
+      </label>
+      <label class="row">
+        <span>Ocultar banners superpuestos</span>
+        <input type="checkbox" id="hideOverlays" checked />
+      </label>
+      <label class="row">
+        <span>Acelerar anuncios (YouTube)</span>
+        <input type="checkbox" id="speedUpAds" checked />
+      </label>
+    </main>
+    <footer>
+      <p class="foot">Videos directos (.mp4): abre <code>web/index.html</code> del proyecto.</p>
+    </footer>
+    <script src="popup.js"></script>
+  </body>
+</html>
