@@ -1,0 +1,10 @@
+/* Ocultar contenedores de anuncio que suelen quedar visibles un instante */
+.ytp-ad-module,
+.ytp-ad-image-overlay,
+.ytp-ad-overlay-slot,
+.video-ads,
+.ad-container[data-vsa-hidden="1"],
+.ytp-ad-overlay-container[data-vsa-hidden="1"] {
+  display: none !important;
+  pointer-events: none !important;
+}

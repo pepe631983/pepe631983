@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reproductor — sin anuncios</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header>
+        <h1>Reproductor de video</h1>
+        <p>
+          Pega un enlace directo a un archivo de video (<code>.mp4</code>,
+          <code>.webm</code>, etc.). No hay anuncios porque el archivo es tuyo.
+        </p>
+      </header>
+      <form id="form" class="url-bar">
+        <input
+          type="url"
+          id="url"
+          placeholder="https://ejemplo.com/video.mp4"
+          autocomplete="url"
+          required
+        />
+        <button type="submit">Reproducir</button>
+      </form>
+      <div class="player-wrap">
+        <video id="player" controls playsinline crossorigin="anonymous">
+          Tu navegador no soporta video HTML5.
+        </video>
+        <p id="hint" class="hint">Introduce una URL para empezar.</p>
+      </div>
+      <section class="tips">
+        <h2>Para YouTube, Twitch y similares</h2>
+        <p>
+          Instala la extensión en la carpeta <code>extension/</code> (ver
+          README). Ella cerrará y saltará anuncios mientras navegas en esas
+          páginas.
+        </p>
+      </section>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>
