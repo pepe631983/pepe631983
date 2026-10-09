@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { PERMISSIONS } from '@repuestos/shared';
@@ -35,11 +36,14 @@ export function ReconciliationPage() {
   const fin = usePermission(PERMISSIONS.reportsFinancial);
   const journal = usePermission(PERMISSIONS.accountingJournalView);
   const allowed = fin.data || journal.data;
+  const [asOf, setAsOf] = useState(() => new Date().toISOString().slice(0, 10));
   const { data, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: ['financial-reconciliation'],
+    queryKey: ['financial-reconciliation', asOf],
     enabled: !!allowed,
     queryFn: async () => {
-      const { data: payload, error: rpcErr } = await supabase.rpc('get_financial_reconciliation');
+      const { data: payload, error: rpcErr } = await supabase.rpc('get_financial_reconciliation', {
+        p_as_of: asOf,
+      });
       if (rpcErr) throw rpcErr;
       return payload as ReconciliationPayload;
     },
@@ -75,14 +79,25 @@ export function ReconciliationPage() {
             <h1 className="text-2xl font-semibold text-brand-navy">{t('reconciliation.title')}</h1>
             <p className="text-sm text-slate-600">{t('reconciliation.subtitle')}</p>
           </div>
-          <button
-            type="button"
-            className="rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50"
-            onClick={() => void refetch()}
-            disabled={isFetching}
-          >
-            {isFetching ? t('common.processing') : t('reconciliation.refresh')}
-          </button>
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="text-sm">
+              <span className="text-slate-600">{t('reconciliation.asOf')}</span>
+              <input
+                type="date"
+                className="ml-2 rounded-lg border border-border px-2 py-1"
+                value={asOf}
+                onChange={(e) => setAsOf(e.target.value)}
+              />
+            </label>
+            <button
+              type="button"
+              className="rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50"
+              onClick={() => void refetch()}
+              disabled={isFetching}
+            >
+              {isFetching ? t('common.processing') : t('reconciliation.refresh')}
+            </button>
+          </div>
         </div>
 
         {isLoading ? <p className="text-sm text-slate-600">{t('reconciliation.loading')}</p> : null}

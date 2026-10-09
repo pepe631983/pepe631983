@@ -1,81 +1,90 @@
 # Pruebas de integración — motor comercial y contable
 
-**No ejecute estas pruebas en producción.** Use un proyecto Supabase separado (staging) o Supabase local.
+## Identificar entorno antes de ejecutar
 
-## Requisitos
+| Comando | ¿Borra datos? | Dónde |
+|---------|----------------|--------|
+| `npm run db:reset:local` | **Sí — toda la base local** | Solo si URL es `127.0.0.1:54322` |
+| `supabase db reset` | **Sí** | Igual que arriba; no use en staging/prod |
+| `npm run db:test:local` | **No** (ROLLBACK) | Local |
+| `npm run db:test:staging` | **No** (ROLLBACK) | Staging vía `STAGING_DATABASE_URL` |
+| `supabase db push` | No borra; **aplica migraciones** | Staging/prod — revisar antes |
 
-1. [Docker Desktop](https://docs.docker.com/get-docker/) o Podman en PATH (`docker` o `podman`).
-2. Node.js 20+ y dependencias del monorepo (`npm install` en la raíz).
-3. Supabase CLI (`npx supabase --version`).
+Los scripts en `scripts/` imprimen host detectado antes de actuar (`db-guard.sh`).
 
-## Configurar entorno local de prueba
+## Opción A — Supabase local (Docker)
 
 ```bash
-cd /ruta/al/repo
-npm install
 npx supabase start
-npx supabase db reset
+npm run db:reset:local    # opcional: base limpia + flag pruebas
+npm run db:test:local
 ```
 
-`db reset` aplica todas las migraciones en `supabase/migrations/` sobre una base vacía.
+## Opción B — Proyecto Supabase **staging** (sin Docker)
 
-## Ejecutar la suite automatizada
-
-```bash
-npm run db:test
-```
-
-Equivalente manual:
-
-```bash
-psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
-  -f supabase/tests/integration_commercial_engine.sql
-```
-
-La función `run_commercial_integration_tests()` devuelve JSON con **esperado vs obtenido** para:
-
-| Métrica | Escenario de referencia |
-|---------|-------------------------|
-| Existencias | 10 compradas − 3 contado − 2 crédito = **5** unidades |
-| Valor inventario | 5 × 60 = **300** USD |
-| Caja | 300 contado + 120 cobro = **420** |
-| Cuentas por cobrar | 200 − 120 = **80** |
-| Cuentas por pagar | Recepción 600 facturada = **600** |
-| Ventas netas | 300 + 200 = **500** |
-| Costo de ventas | (3+2) × 60 = **300** |
-| Utilidad bruta | **200** |
-| Débitos = créditos | Totales del libro confirmado |
-
-También valida:
-
-- Recepción de compra con contrapartida GRNI (1210) sin duplicar inventario al facturar proveedor.
-- Idempotencia POS (reintento OK, payload distinto rechazado).
-- Venta con existencia insuficiente (no deja documentos parciales).
-- Reimpresión sin nuevos asientos contables.
-- Aislamiento básico entre empresas.
-
-## Staging remoto (sin Docker local)
-
-1. Cree un **segundo proyecto** Supabase (staging).
-2. Enlace: `npx supabase link --project-ref <staging-ref>`.
-3. Aplique migraciones: `npx supabase db push` (nunca en producción sin revisión).
-4. En SQL Editor, ejecute como **service role** (o desde `psql` con la URI de servicio):
+1. Cree un proyecto Supabase **distinto de producción**.
+2. Aplique migraciones: `npx supabase link --project-ref <STAGING_REF>` y `npx supabase db push`.
+3. **Una sola vez** en SQL Editor del proyecto staging:
 
 ```sql
-SELECT public.run_commercial_integration_tests();
+UPDATE public.database_capabilities
+SET value = 'true'
+WHERE key = 'integration_tests_enabled';
 ```
 
-5. Revise el JSON; si `status` ≠ `passed`, no promueva a producción.
+**Nunca** ejecute esto en producción.
 
-## Pruebas pendientes en este entorno cloud
+4. Configure en su entorno (secretos del agente o `.env.local` **no commitear**):
+
+```bash
+export STAGING_DATABASE_URL='postgresql://postgres.[ref]:[PASSWORD]@...pooler.supabase.com:6543/postgres'
+```
+
+Obtenga la URI en: Dashboard → Settings → Database → Connection string (URI). Use contraseña de base de datos, no la anon key.
+
+5. Ejecute:
+
+```bash
+npm run db:test:staging
+```
+
+La suite corre dentro de `BEGIN … ROLLBACK`: no persiste empresas/usuarios de prueba.
+
+### Configuración que falta en este agente cloud
+
+- `STAGING_DATABASE_URL` no está definida → **no se pudo ejecutar la suite aquí**.
+- Docker no disponible → **no se pudo ejecutar local**.
+
+## Qué ejecuta la suite
+
+Función `integration_test.run_suite()` (schema `integration_test`, solo rol **service_role** / postgres):
+
+| Prueba | Contenido |
+|--------|-----------|
+| `reference_scenario` | Compra, factura, venta contado/crédito, cobro, métricas 5 u / 420 caja / etc. |
+| `idempotency_all_ops` | Recepción, factura proveedor, POS, cobro |
+| `permissions_and_tenant` | Vendedor sin `purchase.post`; aislamiento básico |
+| `partial_ap_and_variance` | Factura parcial GRNI, sobrefacturación rechazada, variación 6200 |
+| `rollback_on_fault` | Aborto simulado: sin movimientos/facturas parciales |
+| `reconciliation_by_date` | Conciliación por empresa y fecha |
+
+**Pendientes manuales** (listadas al final del JSON): concurrencia dos conexiones (`scripts/db-test-concurrent-last-unit.sh`), devoluciones, cierre caja, impresión física.
+
+## Variación costo provisional vs facturado
+
+- Recepción: DR 1200 / CR 1210 al **costo provisional** de líneas.
+- Factura: DR 1210 (hasta `grni_amount_to_clear`) / CR 2000 por **total factura**.
+- Diferencia (`invoice_total - grni_cleared`) → cuenta **6200** (documentado en migración 00020).
+
+## Resultados de ejecución (agente 2026-10-09)
 
 | Prueba | Estado |
 |--------|--------|
-| `run_commercial_integration_tests()` | **No ejecutada** — Docker no disponible en el agente |
-| Concurrencia real (dos sesiones simultáneas última unidad) | Requiere dos conexiones `psql` o k6 |
-| Fallo intermedio (kill conexión mid-RPC) | Requiere prueba de caos manual |
-| Devoluciones / caja / bancos | Etapas comerciales siguientes |
+| Todas las automatizadas anteriores | **Pendiente** — sin `STAGING_DATABASE_URL` ni Docker |
+| `npm test` / `npm run build` | Ejecutadas en CI local del agente (OK) |
 
-## Pantalla de conciliación
+Reporte por prueba: actualice esta tabla tras `npm run db:test:staging` en su proyecto.
 
-Tras iniciar sesión en la app con permiso `reports.financial` o `accounting.journal.view`, abra **Contabilidad → Conciliación** (`/contabilidad/conciliacion`). Consulta el RPC `get_financial_reconciliation` y muestra diferencias entre inventario operativo, CxC operacional y saldos del mayor.
+## Concurrencia (última unidad)
+
+Dos terminales con el mismo stock preparado: una venta gana, la otra debe recibir `Existencia insuficiente` sin factura huérfana. Ver `supabase/tests/concurrent_last_unit.sql`.

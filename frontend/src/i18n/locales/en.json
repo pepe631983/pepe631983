@@ -11,6 +11,11 @@
     "reconciliation": "Reconciliation",
     "printing": "Printing",
     "pos": "Point of sale",
+    "suppliers": "Suppliers",
+    "receipts": "Receipts",
+    "supplierInvoices": "Supplier invoices",
+    "customers": "Customers",
+    "collections": "Collections",
     "signOut": "Sign out"
   },
   "auth": {
@@ -187,7 +192,54 @@
     "cogs": "Cost of goods sold (5000)",
     "grossProfit": "Gross profit",
     "debits": "Total debits",
-    "credits": "Total credits"
+    "credits": "Total credits",
+    "asOf": "As of"
+  },
+  "suppliers": {
+    "title": "Suppliers",
+    "subtitle": "Create suppliers for purchase receipts (purchase.create).",
+    "name": "Name",
+    "add": "Add",
+    "saved": "Supplier saved."
+  },
+  "purchases": {
+    "receiptTitle": "Goods receipt",
+    "receiptSubtitle": "Posts inventory and GRNI; supplier invoice is a separate step.",
+    "invoiceTitle": "Supplier invoice",
+    "invoiceSubtitle": "Clears GRNI to AP. Invoice total vs provisional cost posts variance to 6200.",
+    "supplier": "Supplier",
+    "product": "Product",
+    "qty": "Quantity",
+    "unitCost": "Provisional unit cost",
+    "confirmReceipt": "Confirm receipt",
+    "receiptSaved": "Receipt confirmed.",
+    "invoiceSaved": "Invoice posted.",
+    "selectSupplier": "Select…",
+    "selectProduct": "Select…",
+    "selectReceipt": "Select receipt…",
+    "receipt": "Receipt",
+    "invoiceNumber": "Supplier invoice number",
+    "invoiceTotalOptional": "Invoice total (optional)",
+    "grniClearOptional": "GRNI to clear (optional; partial)",
+    "postInvoice": "Post invoice",
+    "recentReceipts": "Recent receipts",
+    "noWarehouse": "No default warehouse"
+  },
+  "customers": {
+    "title": "Customers",
+    "subtitle": "Customers for credit sales and collections.",
+    "name": "Name",
+    "add": "Add",
+    "saved": "Customer saved."
+  },
+  "collections": {
+    "title": "Partial collections",
+    "subtitle": "Apply payments to credit invoices (DR cash / CR AR).",
+    "invoice": "Invoice",
+    "selectInvoice": "Select invoice…",
+    "amount": "Amount",
+    "submit": "Record payment",
+    "saved": "Payment recorded."
   },
   "inventory": {
     "title": "Product and stock intake",

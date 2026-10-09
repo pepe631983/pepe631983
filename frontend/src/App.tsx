@@ -16,6 +16,11 @@ import { PwaUpdatePrompt } from '@/components/PwaUpdatePrompt';
 import { PosPage } from '@/pages/PosPage';
 import { InventoryPage } from '@/pages/InventoryPage';
 import { ReconciliationPage } from '@/pages/ReconciliationPage';
+import { SuppliersPage } from '@/pages/SuppliersPage';
+import { GoodsReceiptPage } from '@/pages/GoodsReceiptPage';
+import { SupplierInvoicePage } from '@/pages/SupplierInvoicePage';
+import { CustomersPage } from '@/pages/CustomersPage';
+import { CustomerPaymentsPage } from '@/pages/CustomerPaymentsPage';
 
 const queryClient = new QueryClient();
 
@@ -67,6 +72,11 @@ export default function App() {
               <Route path="impresion" element={<PrintingPage />} />
               <Route path="pos" element={<PosPage />} />
               <Route path="inventario/alta" element={<InventoryPage />} />
+              <Route path="compras/proveedores" element={<SuppliersPage />} />
+              <Route path="compras/recepciones" element={<GoodsReceiptPage />} />
+              <Route path="compras/facturas-proveedor" element={<SupplierInvoicePage />} />
+              <Route path="ventas/clientes" element={<CustomersPage />} />
+              <Route path="ventas/cobros" element={<CustomerPaymentsPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

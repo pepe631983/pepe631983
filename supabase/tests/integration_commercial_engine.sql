@@ -1,7 +1,5 @@
--- Pruebas de integración del motor comercial/contable (SOLO entorno de prueba).
--- Requiere: migraciones 00001–00019 aplicadas (supabase db reset).
--- Ejecutar como rol con privilegios (postgres local o service_role remoto).
-
+-- Wrapper legacy → suite integration_test (ROLLBACK, sin reset).
 \set ON_ERROR_STOP on
-
-SELECT public.run_commercial_integration_tests() AS integration_result \gx
+BEGIN;
+SELECT integration_test.run_suite() AS suite_result \gx
+ROLLBACK;

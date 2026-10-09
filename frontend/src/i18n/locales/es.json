@@ -11,6 +11,11 @@
     "reconciliation": "Conciliación",
     "printing": "Impresión",
     "pos": "Punto de venta",
+    "suppliers": "Proveedores",
+    "receipts": "Recepciones",
+    "supplierInvoices": "Facturas proveedor",
+    "customers": "Clientes",
+    "collections": "Cobros",
     "signOut": "Cerrar sesión"
   },
   "auth": {
@@ -187,7 +192,54 @@
     "cogs": "Costo de ventas (5000)",
     "grossProfit": "Utilidad bruta",
     "debits": "Total débitos",
-    "credits": "Total créditos"
+    "credits": "Total créditos",
+    "asOf": "Al corte"
+  },
+  "suppliers": {
+    "title": "Proveedores",
+    "subtitle": "Alta de proveedores para recepciones de compra (permiso purchase.create).",
+    "name": "Nombre",
+    "add": "Agregar",
+    "saved": "Proveedor guardado."
+  },
+  "purchases": {
+    "receiptTitle": "Recepción de compra",
+    "receiptSubtitle": "Registra mercancía con contrapartida GRNI; no sustituye la factura del proveedor.",
+    "invoiceTitle": "Factura de proveedor",
+    "invoiceSubtitle": "Cierra GRNI hacia cuentas por pagar. Total distinto al provisional genera variación en cuenta 6200.",
+    "supplier": "Proveedor",
+    "product": "Producto",
+    "qty": "Cantidad",
+    "unitCost": "Costo unitario provisional",
+    "confirmReceipt": "Confirmar recepción",
+    "receiptSaved": "Recepción confirmada.",
+    "invoiceSaved": "Factura registrada.",
+    "selectSupplier": "Seleccione…",
+    "selectProduct": "Seleccione…",
+    "selectReceipt": "Seleccione recepción…",
+    "receipt": "Recepción",
+    "invoiceNumber": "Número factura proveedor",
+    "invoiceTotalOptional": "Total factura (opcional; default = GRNI a liquidar)",
+    "grniClearOptional": "GRNI a liquidar (opcional; parcial)",
+    "postInvoice": "Registrar factura",
+    "recentReceipts": "Recepciones recientes",
+    "noWarehouse": "Sin almacén predeterminado"
+  },
+  "customers": {
+    "title": "Clientes",
+    "subtitle": "Clientes para ventas a crédito y cobros.",
+    "name": "Nombre",
+    "add": "Agregar",
+    "saved": "Cliente guardado."
+  },
+  "collections": {
+    "title": "Cobros parciales",
+    "subtitle": "Aplica cobros a facturas a crédito (DR caja / CR CxC; no duplica ingresos).",
+    "invoice": "Factura",
+    "selectInvoice": "Seleccione factura…",
+    "amount": "Monto",
+    "submit": "Registrar cobro",
+    "saved": "Cobro registrado."
   },
   "inventory": {
     "title": "Alta de producto y existencia",

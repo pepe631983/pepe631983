@@ -22,6 +22,11 @@ export function Layout() {
     { to: '/contabilidad/conciliacion', label: t('nav.reconciliation'), permission: PERMISSIONS.reportsFinancial },
     { to: '/impresion', label: t('nav.printing'), permission: PERMISSIONS.printExecute },
     { to: '/pos', label: t('nav.pos'), permission: PERMISSIONS.salesPos },
+    { to: '/compras/proveedores', label: t('nav.suppliers'), permission: PERMISSIONS.purchaseCreate },
+    { to: '/compras/recepciones', label: t('nav.receipts'), permission: PERMISSIONS.purchasePost },
+    { to: '/compras/facturas-proveedor', label: t('nav.supplierInvoices'), permission: PERMISSIONS.purchasePost },
+    { to: '/ventas/clientes', label: t('nav.customers'), permission: PERMISSIONS.salesConfirm },
+    { to: '/ventas/cobros', label: t('nav.collections'), permission: PERMISSIONS.paymentCollect },
   ];
 
   return (
