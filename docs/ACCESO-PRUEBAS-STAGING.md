@@ -27,14 +27,21 @@
 
    Si falta **solo** `VITE_SUPABASE_ANON_KEY`, el script `npm run env:frontend-staging` termina con código 2 e indica ese nombre exacto.
 
-3. Instalar y arrancar:
+3. Validar clave publica (anon `eyJ...` o publishable `sb_publishable_...`):
+
+   ```bash
+   npm run validate:supabase-key
+   ```
+
+4. Instalar y arrancar:
 
    ```bash
    npm install
-   npm run dev
+   npm run env:frontend-staging
+   npm run dev:staging
    ```
 
-4. Abrir la URL local (p. ej. `http://localhost:5173`).
+5. Abrir la URL local: `http://localhost:5173` (si el puerto está ocupado, Vite puede usar 5174; mire la consola).
 5. En el **panel principal** verifique la línea «Proyecto Supabase (navegador)» — el host debe ser el de **staging**, no otro proyecto.
 6. Crear usuario → registrar empresa (modo demostración recomendado).
 

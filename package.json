@@ -23,6 +23,8 @@
     "db:integration:off": "bash scripts/db-integration-off.sh",
     "db:staging:validate": "bash scripts/run-staging-validation.sh",
     "env:frontend-staging": "bash -c 'source scripts/load-staging-env.sh 2>/dev/null || true; bash scripts/write-frontend-staging-env.sh'",
+    "dev:staging": "bash -c 'npm run env:frontend-staging && npm run dev -w frontend -- --host 0.0.0.0 --port 5173'",
+    "validate:supabase-key": "bash scripts/validate-public-supabase-key.sh",
     "db:check:staging-secret": "bash scripts/load-staging-env.sh",
     "desktop:dev": "npm run dev -w frontend & npm run start:dev -w tci-auto-zone-desktop",
     "desktop:start": "npm run start -w tci-auto-zone-desktop",

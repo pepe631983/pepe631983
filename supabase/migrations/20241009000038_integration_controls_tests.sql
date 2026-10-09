@@ -159,7 +159,6 @@ BEGIN
 
   FOR v_elem IN SELECT * FROM jsonb_array_elements(v_rec->'differences')
   LOOP
-    IF v_elem->>'key' = 'cash_session_vs_gl' THEN CONTINUE; END IF;
     PERFORM integration_test.assert_eq('recon_' || (v_elem->>'key'), 0, (v_elem->>'delta')::numeric);
   END LOOP;
 

@@ -1,4 +1,4 @@
--- Pruebas SQL: caja, impuesto en documento, devolución y conciliación
+-- Tras 00040: exigir delta 0 en todas las filas de conciliación (incl. caja)
 
 CREATE OR REPLACE FUNCTION integration_test.test_treasury_e2e_scenario(p_run_id UUID)
 RETURNS JSONB
@@ -70,10 +70,6 @@ BEGIN
     v_session
   );
 
-  v_expected := public._cash_session_expected(v_session);
-  v_close := public.close_cash_session(v_session, v_expected, 'Cierre prueba');
-  PERFORM integration_test.assert_eq('close_difference', 0, (v_close->>'difference')::money_amount);
-
   v_rec := public.get_financial_reconciliation(CURRENT_DATE);
   FOR v_elem IN SELECT * FROM jsonb_array_elements(v_rec->'differences')
   LOOP
@@ -83,6 +79,10 @@ BEGIN
       (v_elem->>'delta')::numeric
     );
   END LOOP;
+
+  v_expected := public._cash_session_expected(v_session);
+  v_close := public.close_cash_session(v_session, v_expected, 'Cierre prueba');
+  PERFORM integration_test.assert_eq('close_difference', 0, (v_close->>'difference')::money_amount);
 
   SELECT COUNT(*) INTO v_j_before FROM public.journal_entries WHERE company_id = v_company;
   PERFORM public.request_reprint_for_document(
@@ -99,7 +99,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION integration_test.test_tax_rounding(p_run_id UUID)
+CREATE OR REPLACE FUNCTION integration_test.test_credit_return_partial_paid(p_run_id UUID)
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -110,101 +110,65 @@ DECLARE
   v_company UUID;
   v_wh UUID;
   v_product UUID;
+  v_cust UUID;
   v_tax UUID;
   v_inv UUID;
-  v_tax_total money_amount;
+  v_line UUID;
+  v_store money_amount;
+  v_ar_ops money_amount;
+  v_rec JSONB;
+  v_elem JSONB;
 BEGIN
-  v_user := integration_test.create_auth_user(p_run_id, 'tax');
+  v_user := integration_test.create_auth_user(p_run_id, 'cret');
   SELECT company_id, warehouse_id INTO v_company, v_wh
-  FROM integration_test.bootstrap_company(p_run_id, v_user, 'IT TAX ROUND');
+  FROM integration_test.bootstrap_company(p_run_id, v_user, 'IT CRED RET');
   PERFORM integration_test.set_session_user(v_user);
 
+  INSERT INTO public.customers (company_id, name) VALUES (v_company, 'Cliente CR') RETURNING id INTO v_cust;
   INSERT INTO public.products (company_id, internal_code, name, sale_price)
-  VALUES (v_company, 'TX-1', 'Item', 33.33) RETURNING id INTO v_product;
-
+  VALUES (v_company, 'CR-1', 'P', 100) RETURNING id INTO v_product;
   INSERT INTO public.tax_rates (company_id, code, name, rate_percent, is_active, legal_format_pending)
-  VALUES (v_company, 'TX-R', 'Redondeo', 8.8750, true, true)
-  RETURNING id INTO v_tax;
+  VALUES (v_company, 'CR-VAT', 'Test', 10.0000, true, true) RETURNING id INTO v_tax;
 
   PERFORM public.confirm_goods_receipt(
     v_wh, 'opening_balance',
-    jsonb_build_array(jsonb_build_object('product_id', v_product, 'quantity', 5, 'unit_cost', 10)),
-    'tx-gr', NULL, 'Stock'
+    jsonb_build_array(jsonb_build_object('product_id', v_product, 'quantity', 10, 'unit_cost', 20)),
+    'cr-gr', NULL, 'Stock'
   );
 
   v_inv := public.confirm_pos_sale(
-    'tx-pos', v_wh, 'cash', 108.88,
-    jsonb_build_array(jsonb_build_object('product_id', v_product, 'quantity', 1, 'unit_price', 100, 'discount', 0)),
+    'cr-pos', v_wh, 'credit', NULL,
+    jsonb_build_array(jsonb_build_object('product_id', v_product, 'quantity', 2, 'unit_price', 50, 'discount', 0)),
     NULL, v_tax, NULL
   );
+  UPDATE public.sales_invoices SET customer_id = v_cust WHERE id = v_inv;
 
-  SELECT tax_total INTO v_tax_total FROM public.sales_invoices WHERE id = v_inv;
+  PERFORM public.collect_customer_payment(v_inv, 60, 'cr-pay');
 
-  PERFORM integration_test.assert_eq('tax_stored_on_invoice', 8.88, v_tax_total);
+  SELECT sil.id INTO v_line FROM public.sales_invoice_lines sil WHERE sil.sales_invoice_id = v_inv LIMIT 1;
 
-  RETURN jsonb_build_object('tax_total', jsonb_build_object('expected', 8.88, 'actual', v_tax_total));
-END;
-$$;
+  PERFORM public.confirm_sales_return(
+    'cr-ret', v_inv,
+    jsonb_build_array(jsonb_build_object('sales_invoice_line_id', v_line, 'quantity', 1)),
+    'credit_balance', NULL
+  );
 
-CREATE OR REPLACE FUNCTION integration_test.run_suite()
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public, integration_test
-AS $$
-DECLARE
-  v_run UUID := integration_test.new_run_id();
-  v_results JSONB := '[]'::jsonb;
-  v_detail JSONB;
-  v_name TEXT;
-  v_failed INT := 0;
-  v_tests TEXT[] := ARRAY[
-    'reference_scenario',
-    'idempotency_all_ops',
-    'permissions_and_tenant',
-    'partial_ap_and_variance',
-    'rollback_on_fault',
-    'reconciliation_by_date',
-    'treasury_e2e_scenario',
-    'tax_rounding'
-  ];
-  v_fn TEXT;
-BEGIN
-  IF NOT public.integration_tests_enabled() THEN
-    RAISE EXCEPTION 'Pruebas de integración deshabilitadas. En staging ejecute: UPDATE database_capabilities SET value = ''true'' WHERE key = ''integration_tests_enabled''; (solo proyecto de prueba)';
-  END IF;
+  SELECT balance INTO v_store FROM public.customer_credit_balances
+  WHERE company_id = v_company AND customer_id = v_cust;
+  PERFORM integration_test.assert_eq('store_credit_excess', 5, v_store);
 
-  FOREACH v_name IN ARRAY v_tests
+  v_rec := public.get_financial_reconciliation(CURRENT_DATE);
+  v_ar_ops := (v_rec#>>'{metrics,accounts_receivable_operational}')::money_amount;
+  PERFORM integration_test.assert_eq('ar_open_after_return', 0, v_ar_ops);
+
+  FOR v_elem IN SELECT * FROM jsonb_array_elements(v_rec->'differences')
   LOOP
-    v_fn := 'integration_test.test_' || v_name;
-    BEGIN
-      EXECUTE format('SELECT %s($1)', v_fn) INTO v_detail USING v_run;
-      v_results := v_results || jsonb_build_array(jsonb_build_object(
-        'test', v_name, 'status', 'passed', 'detail', COALESCE(v_detail, '{}'::jsonb)
-      ));
-    EXCEPTION WHEN OTHERS THEN
-      v_failed := v_failed + 1;
-      v_results := v_results || jsonb_build_array(jsonb_build_object(
-        'test', v_name, 'status', 'failed', 'error', SQLERRM
-      ));
-    END;
+    PERFORM integration_test.assert_eq('recon_' || (v_elem->>'key'), 0, (v_elem->>'delta')::numeric);
   END LOOP;
 
-  PERFORM integration_test.teardown_run(v_run);
-
-  IF v_failed > 0 THEN
-    RAISE EXCEPTION 'Suite fallida: % prueba(s). Resultados: %', v_failed, v_results;
-  END IF;
-
   RETURN jsonb_build_object(
-    'suite_status', 'passed',
-    'tests_run', array_length(v_tests, 1),
-    'results', v_results,
-    'pending_manual', jsonb_build_array(
-      'concurrent_last_unit_two_connections',
-      'physical_print',
-      'on_site_install_verification'
-    )
+    'store_credit', jsonb_build_object('expected', 5, 'actual', v_store),
+    'ar_operational', jsonb_build_object('expected', 0, 'actual', v_ar_ops)
   );
 END;
 $$;

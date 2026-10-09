@@ -32,9 +32,15 @@ if [[ ${#MISSING[@]} -gt 0 ]]; then
   echo ""
   echo "VITE_SUPABASE_URL: URL pública del proyecto (ej. https://xxxx.supabase.co)."
   echo "  Puede derivarse de STAGING_DATABASE_URL si el ref es postgres.[ref] en el pooler."
-  echo "VITE_SUPABASE_ANON_KEY: clave anon/public del mismo proyecto (Dashboard → Settings → API)."
+  echo "VITE_SUPABASE_ANON_KEY: clave publica del mismo proyecto (Dashboard → Settings → API:"
+  echo "  legacy JWT anon eyJ... o publishable sb_publishable_...)."
   echo "  No existe en STAGING_DATABASE_URL; debe configurarse como secreto del entorno o en .env.staging local."
   exit 2
+fi
+
+if [[ "$VITE_SUPABASE_ANON_KEY" != eyJ* && "$VITE_SUPABASE_ANON_KEY" != sb_publishable_* ]]; then
+  echo "ADVERTENCIA: VITE_SUPABASE_ANON_KEY no parece anon JWT (eyJ...) ni publishable (sb_publishable_...)."
+  echo "  Si el cliente falla en auth, verifique la clave en Supabase Dashboard."
 fi
 
 cat > "$OUT" <<EOF

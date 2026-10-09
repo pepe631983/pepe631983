@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 const url = import.meta.env.VITE_SUPABASE_URL;
+/** Clave publica del proyecto: JWT anon (eyJ...) o publishable (sb_publishable_...). */
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!url || !anonKey) {
