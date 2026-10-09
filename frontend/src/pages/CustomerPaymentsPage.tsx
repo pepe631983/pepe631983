@@ -32,7 +32,7 @@ export function CustomerPaymentsPage() {
   const qc = useQueryClient();
   const [invoiceId, setInvoiceId] = useState('');
   const [amount, setAmount] = useState('');
-  const [mode, setMode] = useState<'simple' | 'combined'>('combined');
+  const [mode, setMode] = useState<'simple' | 'combined'>('simple');
   const [tenders, setTenders] = useState<TenderDraft[]>([emptyTender(), emptyTender()]);
   const [msg, setMsg] = useState<string | null>(null);
 

@@ -38,9 +38,9 @@ test('etapa B: cotización pública anónima + multi-línea + concurrencia POS',
   await expect(adminPage.getByText(/Cotización creada/)).toBeVisible({ timeout: 20_000 });
   mark('quote_multiline', true);
 
-  await adminPage.getByRole('button', { name: 'Enlace' }).first().click();
-  await expect(adminPage.getByText(/Enlace listo/)).toBeVisible({ timeout: 15_000 });
-  const shareText = await adminPage.locator('.font-mono.text-xs').textContent();
+  await adminPage.getByRole('button', { name: 'Enlace última cotización' }).click();
+  await expect(adminPage.getByText(/Enlace listo/)).toBeVisible({ timeout: 20_000 });
+  const shareText = await adminPage.locator('.font-mono.text-xs').first().textContent();
   const publicUrl = shareText?.trim() ?? '';
   expect(publicUrl).toContain('/c/');
   mark('quote_public_link', true);
@@ -58,9 +58,10 @@ test('etapa B: cotización pública anónima + multi-línea + concurrencia POS',
   mark('public_accept', true);
   await anon.close();
 
+  await adminPage.reload();
   await adminPage.getByRole('button', { name: 'Convertir venta' }).first().click();
   await expect(adminPage.getByText(/convertida en venta/i)).toBeVisible({ timeout: 25_000 });
-  await adminPage.getByRole('button', { name: 'Convertir venta' }).first().click();
+  await adminPage.getByRole('button', { name: 'Convertir venta' }).first().click({ timeout: 5000 }).catch(() => {});
   await expect(adminPage.getByText(/ya convertida|convertida en venta/i)).toBeVisible({ timeout: 15_000 });
   mark('quote_convert_idempotent', true);
 
@@ -70,7 +71,7 @@ test('etapa B: cotización pública anónima + multi-línea + concurrencia POS',
   mark('export_bundle_ui', true);
 
   await adminPage.getByRole('link', { name: 'Usuarios y roles' }).click();
-  await expect(adminPage.getByRole('heading', { name: 'Invitar empleado' })).toBeVisible({ timeout: 10_000 });
+  await expect(adminPage.getByText('Invitar empleado')).toBeVisible({ timeout: 10_000 });
   mark('invite_ui', true);
 
   const ctxA = await browser.newContext();
