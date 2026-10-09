@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { PERMISSIONS } from '@repuestos/shared';
@@ -89,8 +90,11 @@ export function CustomersPage() {
         {msg ? <p className="text-sm">{msg}</p> : null}
         <ul className="divide-y rounded-xl border border-border bg-white">
           {(list.data ?? []).map((c) => (
-            <li key={c.id} className="px-4 py-3 text-sm">
-              {c.name}
+            <li key={c.id} className="flex justify-between px-4 py-3 text-sm">
+              <span>{c.name}</span>
+              <Link className="text-brand-navy underline" to={`/ventas/clientes/${c.id}`}>
+                Ficha 360
+              </Link>
             </li>
           ))}
         </ul>

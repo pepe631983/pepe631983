@@ -1,21 +1,26 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PERMISSIONS } from '@repuestos/shared';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { PermissionGate } from '@/components/PermissionGate';
+import { downloadQuotePdf } from '@/lib/quotePdf';
 import { supabase } from '@/lib/supabase';
+
+type DraftLine = { product_id: string; quantity: number; unit_price: number; discount: number };
 
 export function QuotesPage() {
   const qc = useQueryClient();
   const [customerId, setCustomerId] = useState('');
-  const [productId, setProductId] = useState('');
-  const [qty, setQty] = useState('1');
-  const [price, setPrice] = useState('');
   const [validUntil, setValidUntil] = useState('');
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [lastQuoteId, setLastQuoteId] = useState<string | null>(null);
+  const [draftProductId, setDraftProductId] = useState('');
+  const [draftQty, setDraftQty] = useState('1');
+  const [draftPrice, setDraftPrice] = useState('');
+  const [lines, setLines] = useState<DraftLine[]>([]);
+  const convertKeys = useMemo(() => new Map<string, string>(), []);
 
   const customers = useQuery({
     queryKey: ['customers'],
@@ -29,7 +34,10 @@ export function QuotesPage() {
   const products = useQuery({
     queryKey: ['pos-products'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('products').select('id, internal_code, name, sale_price').eq('is_active', true);
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, internal_code, name, sale_price')
+        .eq('is_active', true);
       if (error) throw error;
       return data;
     },
@@ -40,7 +48,7 @@ export function QuotesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sales_quotes')
-        .select('id, quote_number, status, total, valid_until, customer_id')
+        .select('id, quote_number, status, total, valid_until, customer_id, subtotal, tax_total')
         .order('created_at', { ascending: false })
         .limit(20);
       if (error) throw error;
@@ -48,12 +56,25 @@ export function QuotesPage() {
     },
   });
 
+  function addLine() {
+    const prod = products.data?.find((p) => p.id === draftProductId);
+    if (!prod) {
+      setMsg('Seleccione un producto.');
+      return;
+    }
+    const unitPrice = draftPrice ? Number(draftPrice) : Number(prod.sale_price);
+    setLines((prev) => [
+      ...prev,
+      { product_id: draftProductId, quantity: Number(draftQty), unit_price: unitPrice, discount: 0 },
+    ]);
+    setDraftProductId('');
+    setDraftQty('1');
+    setDraftPrice('');
+  }
+
   const createQuote = useMutation({
     mutationFn: async () => {
-      const prod = products.data?.find((p) => p.id === productId);
-      if (!prod) throw new Error('Seleccione producto');
-      const unitPrice = price ? Number(price) : Number(prod.sale_price);
-      const lines = [{ product_id: productId, quantity: Number(qty), unit_price: unitPrice, discount: 0 }];
+      if (lines.length === 0) throw new Error('Agregue al menos un repuesto a la cotización.');
       const { data, error } = await supabase.rpc('create_sales_quote', {
         p_idempotency_key: crypto.randomUUID(),
         p_customer_id: customerId || null,
@@ -66,6 +87,7 @@ export function QuotesPage() {
     },
     onSuccess: async (id) => {
       setLastQuoteId(id);
+      setLines([]);
       setMsg('Cotización creada (estado: enviada).');
       await qc.invalidateQueries({ queryKey: ['sales-quotes'] });
     },
@@ -102,9 +124,14 @@ export function QuotesPage() {
 
   const convertQuote = useMutation({
     mutationFn: async (quoteId: string) => {
+      let key = convertKeys.get(quoteId);
+      if (!key) {
+        key = crypto.randomUUID();
+        convertKeys.set(quoteId, key);
+      }
       const { data, error } = await supabase.rpc('convert_quote_to_sale', {
         p_quote_id: quoteId,
-        p_idempotency_key: crypto.randomUUID(),
+        p_idempotency_key: key,
         p_payment_kind: 'cash',
         p_amount_paid: null,
         p_cash_session_id: null,
@@ -113,18 +140,56 @@ export function QuotesPage() {
       return data as string;
     },
     onSuccess: async () => {
-      setMsg('Cotización convertida en venta (sin duplicar documento).');
+      setMsg('Cotización convertida en venta (idempotente: no duplica si repite).');
       await qc.invalidateQueries({ queryKey: ['sales-quotes'] });
     },
     onError: (e: Error) => setMsg(e.message),
   });
+
+  async function pdfForQuote(quoteId: string) {
+    const { data: q, error } = await supabase
+      .from('sales_quotes')
+      .select('quote_number, valid_until, subtotal, tax_total, total')
+      .eq('id', quoteId)
+      .single();
+    if (error) {
+      setMsg(error.message);
+      return;
+    }
+    const { data: ql, error: le } = await supabase
+      .from('sales_quote_lines')
+      .select('description, quantity, unit_price, discount, line_subtotal')
+      .eq('sales_quote_id', quoteId)
+      .order('line_number');
+    if (le) {
+      setMsg(le.message);
+      return;
+    }
+    downloadQuotePdf(
+      {
+        quote_number: q.quote_number,
+        valid_until: q.valid_until ?? undefined,
+        subtotal: Number(q.subtotal),
+        tax_total: Number(q.tax_total),
+        total: Number(q.total),
+      },
+      (ql ?? []).map((l) => ({
+        description: l.description,
+        quantity: Number(l.quantity),
+        unit_price: Number(l.unit_price),
+        discount: Number(l.discount),
+        line_subtotal: Number(l.line_subtotal),
+      })),
+    );
+  }
 
   return (
     <PermissionGate permission={PERMISSIONS.salesQuoteManage}>
       <div className="mx-auto max-w-3xl space-y-6">
         <h1 className="text-2xl font-semibold text-brand-navy">Cotizaciones</h1>
         <p className="text-sm text-slate-600">
-          Crear cotización con cliente, líneas, vencimiento y enlace público revocable. Aceptar no cobra ni confirma pago; la conversión verifica existencias.
+          Varios repuestos por cotización, PDF, enlace público revocable, aceptación del cliente y conversión a venta con
+          verificación de stock y permisos.
         </p>
         {msg ? <p className="rounded-lg border border-border bg-slate-50 p-3 text-sm">{msg}</p> : null}
         {shareUrl ? (
@@ -142,12 +207,6 @@ export function QuotesPage() {
                 rel="noreferrer"
               >
                 WhatsApp
-              </a>
-              <a
-                className="inline-flex items-center rounded-lg border border-border px-3 py-2 text-sm"
-                href={`mailto:?subject=${encodeURIComponent('Cotización TCI Auto Zone')}&body=${encodeURIComponent(shareUrl)}`}
-              >
-                Correo
               </a>
             </div>
           </div>
@@ -171,24 +230,50 @@ export function QuotesPage() {
               ))}
             </select>
           </label>
-          <label className="block text-sm">
-            Producto
-            <select className="mt-1 w-full rounded-lg border px-3 py-2" value={productId} onChange={(e) => setProductId(e.target.value)} required>
-              <option value="">Seleccione…</option>
-              {(products.data ?? []).map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.internal_code})
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <Input label="Cantidad" type="number" value={qty} onChange={(e) => setQty(e.target.value)} required />
-            <Input label="Precio unitario" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} />
-            <Input label="Válida hasta" type="date" value={validUntil} onChange={(e) => setValidUntil(e.target.value)} />
+          <Input label="Válida hasta" type="date" value={validUntil} onChange={(e) => setValidUntil(e.target.value)} />
+
+          <div className="rounded-lg border border-dashed p-3">
+            <p className="text-sm font-medium">Líneas de la cotización</p>
+            <div className="mt-2 grid gap-2 sm:grid-cols-4">
+              <select
+                className="rounded-lg border px-2 py-2 text-sm sm:col-span-2"
+                value={draftProductId}
+                onChange={(e) => setDraftProductId(e.target.value)}
+              >
+                <option value="">Producto…</option>
+                {(products.data ?? []).map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.internal_code})
+                  </option>
+                ))}
+              </select>
+              <Input label="Cant." type="number" value={draftQty} onChange={(e) => setDraftQty(e.target.value)} />
+              <Input label="Precio" type="number" step="0.01" value={draftPrice} onChange={(e) => setDraftPrice(e.target.value)} />
+            </div>
+            <Button type="button" variant="secondary" className="mt-2" onClick={addLine}>
+              Agregar línea
+            </Button>
+            {lines.length > 0 ? (
+              <ul className="mt-3 divide-y text-sm">
+                {lines.map((l, i) => {
+                  const p = products.data?.find((x) => x.id === l.product_id);
+                  return (
+                    <li key={i} className="flex justify-between py-1">
+                      <span>
+                        {p?.name ?? l.product_id} × {l.quantity} @ {l.unit_price}
+                      </span>
+                      <button type="button" className="text-red-600" onClick={() => setLines((prev) => prev.filter((_, j) => j !== i))}>
+                        Quitar
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
           </div>
-          <Button type="submit" loading={createQuote.isPending}>
-            Crear cotización
+
+          <Button type="submit" loading={createQuote.isPending} disabled={lines.length === 0}>
+            Crear cotización ({lines.length} línea{lines.length === 1 ? '' : 's'})
           </Button>
         </form>
 
@@ -200,7 +285,10 @@ export function QuotesPage() {
                 <span>
                   {q.quote_number} · {q.status} · {Number(q.total).toFixed(2)} USD
                 </span>
-                <span className="flex gap-2">
+                <span className="flex flex-wrap gap-2">
+                  <Button variant="secondary" onClick={() => void pdfForQuote(q.id)}>
+                    PDF
+                  </Button>
                   <Button variant="secondary" onClick={() => issueLink.mutate(q.id)}>
                     Enlace
                   </Button>
@@ -208,9 +296,11 @@ export function QuotesPage() {
                     Revocar
                   </Button>
                   {q.status === 'accepted' ? (
-                    <Button onClick={() => convertQuote.mutate(q.id)} loading={convertQuote.isPending}>
-                      Convertir venta
-                    </Button>
+                    <PermissionGate permission={PERMISSIONS.salesQuoteConvert}>
+                      <Button onClick={() => convertQuote.mutate(q.id)} loading={convertQuote.isPending}>
+                        Convertir venta
+                      </Button>
+                    </PermissionGate>
                   ) : null}
                 </span>
               </li>

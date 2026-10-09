@@ -3,9 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { PERMISSIONS } from '@repuestos/shared';
 import { Input } from '@/components/ui/Input';
 import { PermissionGate } from '@/components/PermissionGate';
+import { usePermission } from '@/hooks/usePermissions';
 import { supabase } from '@/lib/supabase';
 
 export function InventoryConsultPage() {
+  const canViewCost = usePermission(PERMISSIONS.costView);
   const [q, setQ] = useState('');
   const [submitted, setSubmitted] = useState('');
 
@@ -58,7 +60,7 @@ export function InventoryConsultPage() {
                 <th className="px-3 py-2 text-right">Físico</th>
                 <th className="px-3 py-2 text-right">Reservado</th>
                 <th className="px-3 py-2 text-right">Disponible</th>
-                <th className="px-3 py-2 text-right">Costo prom.</th>
+                {canViewCost ? <th className="px-3 py-2 text-right">Costo prom.</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -71,7 +73,9 @@ export function InventoryConsultPage() {
                   <td className="px-3 py-2 text-right">{String(row.on_hand)}</td>
                   <td className="px-3 py-2 text-right">{String(row.reserved)}</td>
                   <td className="px-3 py-2 text-right font-medium">{String(row.available)}</td>
-                  <td className="px-3 py-2 text-right">{row.avg_unit_cost != null ? String(row.avg_unit_cost) : '—'}</td>
+                  {canViewCost ? (
+                    <td className="px-3 py-2 text-right">{row.avg_unit_cost != null ? String(row.avg_unit_cost) : '—'}</td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>

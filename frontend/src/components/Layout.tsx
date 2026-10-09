@@ -30,6 +30,7 @@ export function Layout() {
     { to: '/compras/recepciones', label: t('nav.receipts'), permission: PERMISSIONS.purchasePost },
     { to: '/compras/facturas-proveedor', label: t('nav.supplierInvoices'), permission: PERMISSIONS.purchasePost },
     { to: '/ventas/clientes', label: t('nav.customers'), permission: PERMISSIONS.salesConfirm },
+    { to: '/configuracion/exportacion', label: 'Exportación', permission: PERMISSIONS.dataExport },
     { to: '/ventas/cobros', label: t('nav.collections'), permission: PERMISSIONS.paymentCollect },
     { to: '/ventas/devoluciones', label: t('nav.returns'), permission: PERMISSIONS.returnsProcess },
     { to: '/configuracion/impuestos', label: t('nav.taxes'), permission: PERMISSIONS.companySettingsEdit },

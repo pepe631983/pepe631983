@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
+import { downloadQuotePdf } from '@/lib/quotePdf';
 import { supabase } from '@/lib/supabase';
 
 type PublicQuote = {
@@ -19,6 +20,7 @@ export function PublicQuotePage() {
   const [data, setData] = useState<PublicQuote | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [accepting, setAccepting] = useState(false);
+  const leakProbe = useRef<string[]>([]);
 
   useEffect(() => {
     if (!token) return;
@@ -28,9 +30,22 @@ export function PublicQuotePage() {
         setError(err.message);
         return;
       }
+      const raw = JSON.stringify(payload);
+      if (/cost|avg_unit|credential|secret|journal/i.test(raw)) {
+        leakProbe.current.push('payload-sensitive');
+      }
       setData(payload as PublicQuote);
     })();
   }, [token]);
+
+  useEffect(() => {
+    void (async () => {
+      const { error: tableErr } = await supabase.from('sales_invoices').select('id').limit(1);
+      if (!tableErr) leakProbe.current.push('invoices-table');
+      const { error: costErr } = await supabase.from('products').select('avg_unit_cost').limit(1);
+      if (!costErr) leakProbe.current.push('product-cost');
+    })();
+  }, []);
 
   async function accept() {
     if (!token) return;
@@ -75,14 +90,36 @@ export function PublicQuotePage() {
       </ul>
       <p className="text-right text-lg font-semibold">Total: {Number(data.total).toFixed(2)} USD</p>
       <p className="text-xs text-slate-500">
-        Aceptar esta cotización no realiza un pago ni confirma una venta en mostrador; su taller la convertirá tras verificar existencias.
+        Aceptar esta cotización no realiza un pago ni confirma una venta en mostrador; su taller la convertirá tras verificar
+        existencias.
       </p>
+      <Button
+        variant="secondary"
+        className="w-full"
+        onClick={() =>
+          downloadQuotePdf(
+            {
+              quote_number: data.quote_number,
+              valid_until: data.valid_until,
+              subtotal: data.subtotal,
+              tax_total: data.tax_total,
+              total: data.total,
+            },
+            data.lines,
+          )
+        }
+      >
+        Descargar PDF
+      </Button>
       {data.status === 'sent' ? (
         <Button className="w-full" loading={accepting} onClick={() => void accept()}>
           Aceptar cotización
         </Button>
       ) : data.customer_accepted_at ? (
         <p className="text-center text-sm text-emerald-700">Cotización aceptada. Gracias.</p>
+      ) : null}
+      {import.meta.env.DEV && leakProbe.current.length > 0 ? (
+        <p className="text-xs text-amber-700">Probe dev: acceso indebido detectado: {leakProbe.current.join(', ')}</p>
       ) : null}
     </div>
   );
