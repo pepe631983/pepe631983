@@ -9,6 +9,7 @@
     "users": "Users & roles",
     "chart": "Chart of accounts",
     "printing": "Printing",
+    "pos": "Point of sale",
     "signOut": "Sign out"
   },
   "auth": {
@@ -155,6 +156,37 @@
     "limitBt": "Bluetooth and ESC/POS need helper apps or the desktop build.",
     "usePdf": "Use PDF or system print as a stable fallback.",
     "runtime": "Current mode",
-    "installHint": "Chrome/Edge: menu → Install app. iOS Safari: Share → Add to Home Screen."
+    "installHint": "Chrome/Edge: menu → Install app. iOS Safari: Share → Add to Home Screen.",
+    "updateAvailable": "A new version of TCI Auto Zone is available.",
+    "updateDeferredPos": "Update deferred while POS is in use. Finish the sale, then update.",
+    "updateNow": "Update now"
+  },
+  "inventory": {
+    "title": "Product and stock intake",
+    "subtitle": "For testing: register real products before POS. Receipt updates moving average cost.",
+    "code": "Internal code",
+    "name": "Name",
+    "salePrice": "Sale price (USD)",
+    "qty": "Quantity received",
+    "unitCost": "Unit cost",
+    "save": "Save product and stock",
+    "saved": "Product and inventory saved."
+  },
+  "pos": {
+    "title": "Point of sale",
+    "subtitle": "Sale is committed to the database before printing. If print fails, use Reprint COPY.",
+    "products": "Products",
+    "cart": "Cart",
+    "stock": "Stock",
+    "total": "Total",
+    "paymentKind": "Payment",
+    "cash": "Cash",
+    "credit": "Credit",
+    "confirm": "Confirm sale",
+    "confirmed": "Sale confirmed.",
+    "printFailedSaleSaved": "Sale saved. Printing failed; recover via Reprint COPY or PDF.",
+    "printQueueFailed": "Could not load invoice for printing.",
+    "reprintCopy": "Reprint COPY (does not duplicate sale)",
+    "reprintFailed": "Could not register reprint."
   }
 }

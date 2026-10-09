@@ -1,5 +1,6 @@
 node_modules/
 dist/
+desktop/release/
 .env
 .env.local
 frontend/.env.local

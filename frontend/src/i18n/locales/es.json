@@ -9,6 +9,7 @@
     "users": "Usuarios y roles",
     "chart": "Plan de cuentas",
     "printing": "Impresión",
+    "pos": "Punto de venta",
     "signOut": "Cerrar sesión"
   },
   "auth": {
@@ -155,6 +156,37 @@
     "limitBt": "Bluetooth y ESC/POS requieren apps auxiliares o la versión de escritorio.",
     "usePdf": "Use PDF o impresión del sistema como alternativa estable.",
     "runtime": "Modo actual",
-    "installHint": "En Chrome/Edge: menú → Instalar app. En iOS Safari: Compartir → Añadir a inicio."
+    "installHint": "En Chrome/Edge: menú → Instalar app. En iOS Safari: Compartir → Añadir a inicio.",
+    "updateAvailable": "Hay una nueva versión de TCI Auto Zone.",
+    "updateDeferredPos": "Actualización pospuesta mientras el punto de venta está en uso. Cierre el POS o termine la venta y actualice.",
+    "updateNow": "Actualizar ahora"
+  },
+  "inventory": {
+    "title": "Alta de producto y existencia",
+    "subtitle": "Para pruebas: registre productos reales antes del POS. Recepción con costo promedio.",
+    "code": "Código interno",
+    "name": "Nombre",
+    "salePrice": "Precio de venta (USD)",
+    "qty": "Cantidad recibida",
+    "unitCost": "Costo unitario",
+    "save": "Guardar producto y existencia",
+    "saved": "Producto e inventario registrados."
+  },
+  "pos": {
+    "title": "Punto de venta",
+    "subtitle": "La venta se confirma en la base de datos antes de imprimir. Si falla la impresión, use Reimprimir COPIA.",
+    "products": "Productos",
+    "cart": "Carrito",
+    "stock": "Existencia",
+    "total": "Total",
+    "paymentKind": "Forma de pago",
+    "cash": "Contado",
+    "credit": "Crédito",
+    "confirm": "Confirmar venta",
+    "confirmed": "Venta confirmada.",
+    "printFailedSaleSaved": "Venta guardada. La impresión falló; recupere desde Reimprimir COPIA o PDF en Impresión.",
+    "printQueueFailed": "No se pudo cargar la factura para imprimir.",
+    "reprintCopy": "Reimprimir COPIA (no duplica venta)",
+    "reprintFailed": "No se pudo registrar la reimpresión."
   }
 }

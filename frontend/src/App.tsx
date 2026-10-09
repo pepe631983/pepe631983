@@ -12,6 +12,9 @@ import { UsersRolesPage } from '@/pages/UsersRolesPage';
 import { ChartOfAccountsPage } from '@/pages/ChartOfAccountsPage';
 import { PrintingPage } from '@/pages/PrintingPage';
 import { PrintQueueRecoveryBanner } from '@/components/PrintQueueRecoveryBanner';
+import { PwaUpdatePrompt } from '@/components/PwaUpdatePrompt';
+import { PosPage } from '@/pages/PosPage';
+import { InventoryPage } from '@/pages/InventoryPage';
 
 const queryClient = new QueryClient();
 
@@ -35,6 +38,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
+          <PwaUpdatePrompt />
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/registro" element={<RegisterPage />} />
@@ -59,6 +63,8 @@ export default function App() {
               <Route path="usuarios" element={<UsersRolesPage />} />
               <Route path="contabilidad/plan" element={<ChartOfAccountsPage />} />
               <Route path="impresion" element={<PrintingPage />} />
+              <Route path="pos" element={<PosPage />} />
+              <Route path="inventario/alta" element={<InventoryPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

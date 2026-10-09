@@ -20,6 +20,7 @@ export function Layout() {
     { to: '/usuarios', label: t('nav.users'), permission: PERMISSIONS.usersManage },
     { to: '/contabilidad/plan', label: t('nav.chart'), permission: PERMISSIONS.accountingJournalView },
     { to: '/impresion', label: t('nav.printing'), permission: PERMISSIONS.printExecute },
+    { to: '/pos', label: t('nav.pos'), permission: PERMISSIONS.salesPos },
   ];
 
   return (

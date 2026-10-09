@@ -16,7 +16,8 @@
     "db:reset": "supabase db reset",
     "db:push": "supabase db push",
     "desktop:dev": "npm run dev -w frontend & npm run start:dev -w tci-auto-zone-desktop",
-    "desktop:start": "npm run start -w tci-auto-zone-desktop"
+    "desktop:start": "npm run start -w tci-auto-zone-desktop",
+    "desktop:pack": "npm run build -w frontend && npm run pack -w tci-auto-zone-desktop"
   },
   "engines": {
     "node": ">=20"

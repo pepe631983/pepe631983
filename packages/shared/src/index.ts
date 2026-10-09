@@ -7,3 +7,4 @@ export * from './printing/schemas';
 export * from './printing/sampleDocument';
 export * from './printing/renderHtml';
 export * from './printing/adapters';
+export * from './printing/invoiceDocument';

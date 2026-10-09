@@ -78,10 +78,35 @@ export async function enqueueAndProcessPrint(request: QueuePrintRequest): Promis
     throw new Error(regError?.message ?? 'No se pudo encolar la impresión');
   }
 
-  return processExistingJob(String(jobId), request, { copies, isMarkedCopy });
+  const { error: claimError } = await supabase.rpc('claim_print_job', {
+    p_job_id: jobId,
+    p_device_fingerprint: fingerprint,
+  });
+  if (claimError) {
+    throw new Error(claimError.message);
+  }
+
+  return processPendingPrintJob(String(jobId), request, { copies, isMarkedCopy });
 }
 
-export async function processExistingJob(
+/** Procesa un trabajo ya registrado (p. ej. reimpresión COPIA). */
+export async function processPendingPrintJobById(
+  jobId: string,
+  request: QueuePrintRequest,
+): Promise<QueuePrintResult> {
+  const fingerprint = getDeviceFingerprint();
+  const { error: claimError } = await supabase.rpc('claim_print_job', {
+    p_job_id: jobId,
+    p_device_fingerprint: fingerprint,
+  });
+  if (claimError) throw new Error(claimError.message);
+  return processPendingPrintJob(jobId, request, {
+    copies: request.copies ?? request.profile.defaultCopies,
+    isMarkedCopy: Boolean(request.isMarkedCopy ?? request.isReprint),
+  });
+}
+
+export async function processPendingPrintJob(
   jobId: string,
   request: QueuePrintRequest,
   opts: { copies: number; isMarkedCopy: boolean },
@@ -92,13 +117,6 @@ export async function processExistingJob(
     profile: request.profile,
     isMarkedCopy: opts.isMarkedCopy,
     isTestDocument: request.document.documentType === 'print_test',
-  });
-
-  await supabase.rpc('update_print_job_status', {
-    p_job_id: jobId,
-    p_status: 'sending',
-    p_error_message: null,
-    p_increment_attempt: true,
   });
 
   const adapter =
