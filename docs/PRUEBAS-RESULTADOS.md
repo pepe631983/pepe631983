@@ -13,7 +13,9 @@ Fecha de ejecución en agente cloud: 2026-10-09.
 
 ## Integración SQL (motor comercial)
 
-Entorno del agente (run `bc-d29d60e4-c5d3-40bc-85bb-945b550e21a4`, 2026-10-09): **`STAGING_DATABASE_URL` no presente en el proceso** (`npm run db:check:staging-secret` → exit 2). Environment ID `a53259a6-bcfb-11f1-977f-f6b8f2fcf9b2` (Personal). Validación staging **no ejecutada**.
+Entorno del agente (run `bc-d29d60e4-c5d3-40bc-85bb-945b550e21a4`, 2026-10-09, tras acción externa “completada”): **`STAGING_DATABASE_URL` sigue sin inyectarse** — el `bcId` no cambió y el proceso no tiene variables de entorno de secretos (`npm run db:check:staging-secret` → exit 2). Environment ID `a53259a6-bcfb-11f1-977f-f6b8f2fcf9b2`. Boot snapshot: `bld-20261008-be83aed1…` (build `bld-20261009-8d58e7d6…` existe pero hay que **activarlo** y arrancar un **run nuevo**). Validación staging **no ejecutada** en este run.
+
+Verificación local en el mismo run: `psql` 16.15, `npm test` (9), `npm run build` OK.
 
 | Prueba SQL | Estado |
 |------------|--------|

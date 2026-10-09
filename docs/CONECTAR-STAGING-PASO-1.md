@@ -10,7 +10,10 @@
 4. Cree un secreto (tipo **Runtime Secret** recomendado):
    - **Nombre:** `STAGING_DATABASE_URL`
    - **Valor:** la URI completa de PostgreSQL del proyecto **staging** (no producción).
-5. **Guarde** y **relance el agente** (nuevo run). Los secretos no se inyectan en sesiones ya abiertas.
+5. **Guarde** el secreto.
+6. En **Environments → Builds**, **active** el build más reciente que incluya `postgresql-client` y `npm ci` (p. ej. draft `bld-20261009-8d58e7d6…` o uno posterior con `.cursor/environment.json` del repo).
+7. Inicie un **agente cloud nuevo** desde el Dashboard (**Cloud Agents → New** en este repositorio). La URL debe cambiar (`bc-…` distinto). Marcar “acción externa completada” en el mismo chat **no** inyecta secretos: hace falta un **run nuevo**.
+8. En el nuevo run, el agente debe poder ejecutar `npm run db:check:staging-secret` sin exit 2 (solo muestra la longitud de la URI, nunca el valor).
 
 ## Dónde obtener la URI (Supabase)
 
