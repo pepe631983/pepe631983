@@ -2,3 +2,7 @@ export * from './permissions';
 export * from './money';
 export * from './branding';
 export * from './schemas/company';
+export * from './printing/types';
+export * from './printing/schemas';
+export * from './printing/sampleDocument';
+export * from './printing/renderHtml';

@@ -10,6 +10,7 @@ import { DashboardPage } from '@/pages/DashboardPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { UsersRolesPage } from '@/pages/UsersRolesPage';
 import { ChartOfAccountsPage } from '@/pages/ChartOfAccountsPage';
+import { PrintingPage } from '@/pages/PrintingPage';
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,7 @@ export default function App() {
               <Route path="configuracion" element={<SettingsPage />} />
               <Route path="usuarios" element={<UsersRolesPage />} />
               <Route path="contabilidad/plan" element={<ChartOfAccountsPage />} />
+              <Route path="impresion" element={<PrintingPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

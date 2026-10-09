@@ -19,6 +19,7 @@ export function Layout() {
     { to: '/configuracion', label: t('nav.settings'), permission: PERMISSIONS.companySettingsView },
     { to: '/usuarios', label: t('nav.users'), permission: PERMISSIONS.usersManage },
     { to: '/contabilidad/plan', label: t('nav.chart'), permission: PERMISSIONS.accountingJournalView },
+    { to: '/impresion', label: t('nav.printing'), permission: PERMISSIONS.printExecute },
   ];
 
   return (

@@ -25,6 +25,8 @@ export const PERMISSIONS = {
   reportsOperational: 'reports.operational',
   accountingPeriodClose: 'accounting.period.close',
   accountingJournalView: 'accounting.journal.view',
+  printConfigure: 'print.configure',
+  printExecute: 'print.execute',
 } as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

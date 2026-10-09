@@ -8,6 +8,7 @@
     "settings": "Configuración",
     "users": "Usuarios y roles",
     "chart": "Plan de cuentas",
+    "printing": "Impresión",
     "signOut": "Cerrar sesión"
   },
   "auth": {
@@ -74,5 +75,55 @@
   "common": {
     "loadingSession": "Cargando sesión…",
     "processing": "Procesando…"
+  },
+  "printing": {
+    "title": "Impresión",
+    "subtitle": "Diálogo del sistema y PDF. La impresión no confirma ventas ni mueve inventario.",
+    "loading": "Cargando perfiles…",
+    "platformTitle": "Compatibilidad por plataforma",
+    "platformWindows": "Windows: use los controladores instalados desde el diálogo de impresión del navegador.",
+    "platformAndroid": "Android: diálogo del sistema; integración RawBT opcional en una fase posterior (sin ESC/POS genérico).",
+    "platformIos": "iPhone/iPad: AirPrint cuando el dispositivo lo ofrezca en el diálogo; también PDF.",
+    "platformUsb": "USB, Bluetooth, Wi‑Fi o red: depende del dispositivo y modelo; no hay soporte universal garantizado.",
+    "profiles": "Perfiles de documento",
+    "documentType": "Tipo de documento",
+    "useThermal": "Ticket térmico (58 mm / 80 mm)",
+    "paperLetter": "Carta (Letter)",
+    "paperA4": "A4",
+    "marginTop": "Margen superior (mm)",
+    "marginLeft": "Margen izquierdo (mm)",
+    "copies": "Copias por defecto (diálogo del sistema)",
+    "footerText": "Texto al pie del ticket/documento",
+    "testPrint": "Impresión de prueba",
+    "downloadPdf": "Descargar PDF",
+    "reprintCopy": "Reimprimir como COPIA",
+    "previewCopyWatermark": "Vista previa con marca COPIA",
+    "preview": "Vista previa",
+    "jobLog": "Registro de impresión",
+    "saleDecoupled": "Si falla la impresión, la operación comercial confirmada no se revierte; puede reimprimir sin duplicar ventas.",
+    "statusCompleted": "PDF generado correctamente.",
+    "statusSpooler": "Enviado al spooler del sistema (no confirma que ya salió en papel).",
+    "statusUnknown": "Resultado incierto: no se reintentó automáticamente. Verifique o reimprima manualmente.",
+    "statusFailed": "Error de impresión registrado.",
+    "colWhen": "Fecha",
+    "colProfile": "Perfil",
+    "colChannel": "Canal",
+    "colStatus": "Estado",
+    "colCopy": "Copia",
+    "yes": "Sí",
+    "profile": {
+      "sales_invoice": "Factura de venta",
+      "quote": "Cotización",
+      "purchase_order": "Orden de compra",
+      "report": "Reporte",
+      "sales_receipt": "Recibo / ticket POS"
+    },
+    "jobStatus": {
+      "requested": "Solicitado",
+      "sent_to_spooler": "Enviado a impresora",
+      "completed": "PDF completado",
+      "failed": "Fallido",
+      "unknown": "Incertidumbre"
+    }
   }
 }

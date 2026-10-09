@@ -8,6 +8,7 @@
     "settings": "Settings",
     "users": "Users & roles",
     "chart": "Chart of accounts",
+    "printing": "Printing",
     "signOut": "Sign out"
   },
   "auth": {
@@ -74,5 +75,55 @@
   "common": {
     "loadingSession": "Loading session…",
     "processing": "Processing…"
+  },
+  "printing": {
+    "title": "Printing",
+    "subtitle": "System dialog and PDF. Printing does not confirm sales or move inventory.",
+    "loading": "Loading profiles…",
+    "platformTitle": "Platform compatibility",
+    "platformWindows": "Windows: use installed drivers via the browser print dialog.",
+    "platformAndroid": "Android: system print; optional RawBT integration in a later phase (no generic ESC/POS).",
+    "platformIos": "iPhone/iPad: AirPrint when offered in the dialog; PDF download as well.",
+    "platformUsb": "USB, Bluetooth, Wi‑Fi or LAN depends on device and printer model; universal support is not guaranteed.",
+    "profiles": "Document profiles",
+    "documentType": "Document type",
+    "useThermal": "Thermal ticket (58 mm / 80 mm)",
+    "paperLetter": "Letter",
+    "paperA4": "A4",
+    "marginTop": "Top margin (mm)",
+    "marginLeft": "Left margin (mm)",
+    "copies": "Default copies (system dialog)",
+    "footerText": "Footer text on ticket/document",
+    "testPrint": "Test print",
+    "downloadPdf": "Download PDF",
+    "reprintCopy": "Reprint as COPY",
+    "previewCopyWatermark": "Preview COPY watermark",
+    "preview": "Preview",
+    "jobLog": "Print log",
+    "saleDecoupled": "If printing fails, a confirmed sale is not reversed; you may reprint without duplicating sales.",
+    "statusCompleted": "PDF generated successfully.",
+    "statusSpooler": "Sent to the system spooler (does not confirm paper output).",
+    "statusUnknown": "Uncertain result: no automatic retry. Verify or reprint manually.",
+    "statusFailed": "Print error recorded.",
+    "colWhen": "When",
+    "colProfile": "Profile",
+    "colChannel": "Channel",
+    "colStatus": "Status",
+    "colCopy": "Copy",
+    "yes": "Yes",
+    "profile": {
+      "sales_invoice": "Sales invoice",
+      "quote": "Quote",
+      "purchase_order": "Purchase order",
+      "report": "Report",
+      "sales_receipt": "Receipt / POS ticket"
+    },
+    "jobStatus": {
+      "requested": "Requested",
+      "sent_to_spooler": "Sent to printer",
+      "completed": "PDF completed",
+      "failed": "Failed",
+      "unknown": "Uncertain"
+    }
   }
 }

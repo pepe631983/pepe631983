@@ -20,6 +20,12 @@ Este repositorio se construye **por etapas**; la Etapa 1 incluye base de datos, 
 └── docs/PLAN-IMPLEMENTACION.md
 ```
 
+## Impresión (web — fase 1)
+
+- Menú **Impresión**: perfiles carta/A4 y térmico **58 mm / 80 mm**, vista previa, **impresión de prueba** (diálogo del sistema), **PDF**, reimpresión con marca **COPIA**.
+- Registro en base de datos (`print_jobs`); la impresión **no** confirma ventas ni mueve inventario.
+- Detalle técnico: `docs/IMPRESION.md`. Migración: `20241009000012_printing.sql`.
+
 ## Qué hace la Etapa 1 (ahora)
 
 - Registro de **empresa** con sucursal, almacén, políticas, series de documentos y métodos de pago base.
