@@ -4,6 +4,8 @@
 
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=scripts/load-staging-env.sh
+source "$ROOT/scripts/load-staging-env.sh"
 # shellcheck source=scripts/db-guard.sh
 source "$ROOT/scripts/db-guard.sh"
 

@@ -7,9 +7,10 @@
 1. Abra **Cursor** → **Dashboard** → **Cloud Agents** → **Environments**.
 2. Elija el entorno vinculado a este repositorio (`pepe631983`).
 3. Sección **Secrets** (o **Environment variables** privadas).
-4. Cree un secreto:
+4. Cree un secreto (tipo **Runtime Secret** recomendado):
    - **Nombre:** `STAGING_DATABASE_URL`
    - **Valor:** la URI completa de PostgreSQL del proyecto **staging** (no producción).
+5. **Guarde** y **relance el agente** (nuevo run). Los secretos no se inyectan en sesiones ya abiertas.
 
 ## Dónde obtener la URI (Supabase)
 

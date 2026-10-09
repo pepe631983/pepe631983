@@ -3,6 +3,7 @@ dist/
 desktop/release/
 .env
 .env.local
+.env.staging
 frontend/.env.local
 supabase/.temp/
 .DS_Store

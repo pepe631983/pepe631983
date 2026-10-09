@@ -3,6 +3,14 @@
 
 set -euo pipefail
 
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if [[ -z "${STAGING_DATABASE_URL:-}" && -f "$ROOT_DIR/.env.staging" ]]; then
+  set -a
+  # shellcheck source=/dev/null
+  source "$ROOT_DIR/.env.staging"
+  set +a
+fi
+
 resolve_db_url() {
   if [[ -n "${STAGING_DATABASE_URL:-}" ]]; then
     echo "$STAGING_DATABASE_URL"

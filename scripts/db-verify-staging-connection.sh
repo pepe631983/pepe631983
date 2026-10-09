@@ -5,10 +5,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=scripts/db-guard.sh
 source "$ROOT/scripts/db-guard.sh"
 
-if [[ -z "${STAGING_DATABASE_URL:-}" ]]; then
-  echo "Falta STAGING_DATABASE_URL (ver docs/CONECTAR-STAGING-PASO-1.md)."
-  exit 2
-fi
+# shellcheck source=scripts/load-staging-env.sh
+source "$ROOT/scripts/load-staging-env.sh"
 
 URL="$STAGING_DATABASE_URL"
 print_environment_info "$URL"

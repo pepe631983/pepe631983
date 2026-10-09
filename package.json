@@ -21,6 +21,8 @@
     "db:verify:staging": "bash scripts/db-verify-staging-connection.sh",
     "db:test:concurrent": "bash scripts/db-test-concurrent-last-unit.sh",
     "db:integration:off": "bash scripts/db-integration-off.sh",
+    "db:staging:validate": "bash scripts/run-staging-validation.sh",
+    "db:check:staging-secret": "bash scripts/load-staging-env.sh",
     "desktop:dev": "npm run dev -w frontend & npm run start:dev -w tci-auto-zone-desktop",
     "desktop:start": "npm run start -w tci-auto-zone-desktop",
     "desktop:pack": "npm run build -w frontend && npm run pack -w tci-auto-zone-desktop"
