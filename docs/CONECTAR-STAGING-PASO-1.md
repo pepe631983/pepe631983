@@ -28,6 +28,18 @@
 - No pegar la URI en issues, PRs ni en el chat del agente.
 - No usar el proyecto de **producción** para pruebas de integración.
 
+## Si “Add secret” falla varias veces
+
+| Problema | Qué revisar |
+|----------|-------------|
+| El agente sigue sin ver la URI | ¿Run **nuevo** (`bc-…` distinto)? Los secretos solo entran al **arrancar** el agente. |
+| Nombre distinto | Debe ser exactamente `STAGING_DATABASE_URL` (mayúsculas y guiones bajos). |
+| Entorno equivocado | Secreto en el entorno vinculado a **este repo** ([enlace](https://cursor.com/dashboard/cloud-agents/environments/e/a53259a6-bcfb-11f1-977f-f6b8f2fcf9b2)), no otro Personal/Team. |
+| URI incompleta | Sustituir `[YOUR-PASSWORD]`; una línea; si la contraseña tiene `@` o `#`, [codificar URL](https://developer.mozilla.org/en-US/docs/Glossary/Percent-encoding) esos caracteres. |
+| Panel del agente | Use el flujo **Add secret** que Cursor muestra cuando el agente lo solicita (no hace falta buscar Secrets a mano si aparece el formulario en el run). |
+
+El agente **no puede** escribir secretos en su cuenta Cursor; solo usted puede confirmarlos en ese formulario o en Dashboard → Environments → Secrets.
+
 ## Siguiente paso
 
 Cuando el secreto exista, relance el agente o espere un nuevo run. Luego: **Paso 2** — verificar proyecto (`docs/CONECTAR-STAGING-PASO-2.md`).
