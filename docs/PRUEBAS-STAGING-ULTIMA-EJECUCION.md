@@ -4,14 +4,16 @@ Fecha UTC: 2026-10-09 (run `bc-d29d60e4-c5d3-40bc-85bb-945b550e21a4`)
 
 Host: `aws-0-us-east-1.pooler.supabase.com:5432`
 
-## Resultado
+## Resultado (2.º intento de secreto)
 
 | Paso | Estado |
 |------|--------|
-| `STAGING_DATABASE_URL` en proceso | OK (longitud 107) |
+| `STAGING_DATABASE_URL` en proceso | OK (longitud **107**, sin cambio vs intento anterior) |
 | Usuario URI parseado | `postgres.dcfqaubuehnkniqcfvyg` |
-| `npm run db:verify:staging` | **FAILED** — `password authentication failed` |
-| Migraciones / suite / concurrencia | **No ejecutado** (bloqueado por auth) |
+| Longitud contraseña en URI | 14 caracteres (sin espacios; sin placeholder `[YOUR-PASSWORD]`) |
+| Pooler `:5432` / `:6543` | **FAILED** — `password authentication failed` |
+| Host directo `db.*.supabase.co` | No usable (solo IPv6 desde este entorno) |
+| Migraciones / suite / concurrencia | **No ejecutado** |
 
 ## Acción requerida
 
