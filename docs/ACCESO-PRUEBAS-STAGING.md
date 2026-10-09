@@ -83,9 +83,15 @@ Incluye suite `integration_test.run_suite()` (escenario referencia, idempotencia
 | E2E navegador staging | `npm run dev` + flujo en pantallas | **Manual pendiente** hasta configurar `VITE_SUPABASE_ANON_KEY` |
 | Impresión física | Impresoras del local | **No realizada** |
 
+## Acceso desde Windows (su PC)
+
+El localhost del Cloud Agent **no** es el de su equipo. Use **[ACCESO-WINDOWS-STAGING.md](./ACCESO-WINDOWS-STAGING.md)** (PowerShell): clone, `frontend\.env.local`, `npx vite`, abrir `http://127.0.0.1:5173/login`.
+
+Credenciales de prueba: usuario creado en **Dashboard → Authentication** (no SQL). Para automatización en el agente, configure secretos `STAGING_UI_TEST_EMAIL` y `STAGING_UI_TEST_PASSWORD` (ver `scripts/seed-staging-ui-user.md`).
+
 ## Enlace publicado
 
-No hay despliegue web público en este repositorio. La versión de pruebas es **local**: `npm run dev` apuntando al proyecto Supabase staging con `.env.local` anterior.
+No hay despliegue web público en este repositorio. La versión de pruebas es **local en su máquina** o en el agente (solo visible dentro de la VM).
 
 ## Pendientes (no producción)
 
