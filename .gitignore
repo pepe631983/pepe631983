@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+.env.local
+frontend/.env.local
+supabase/.temp/
+.DS_Store
+*.log

@@ -1,0 +1,21 @@
+{
+  "name": "repuestos-erp",
+  "private": true,
+  "version": "0.1.0",
+  "description": "ERP de repuestos automotrices — inventario y contabilidad",
+  "workspaces": [
+    "frontend",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w frontend",
+    "build": "npm run build -w frontend",
+    "test": "npm run test -w @repuestos/shared",
+    "lint": "npm run lint -w frontend",
+    "db:reset": "supabase db reset",
+    "db:push": "supabase db push"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
