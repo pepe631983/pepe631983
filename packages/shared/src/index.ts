@@ -6,3 +6,4 @@ export * from './printing/types';
 export * from './printing/schemas';
 export * from './printing/sampleDocument';
 export * from './printing/renderHtml';
+export * from './printing/adapters';

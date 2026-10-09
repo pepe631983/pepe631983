@@ -1,11 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
   PERMISSIONS,
-  WEB_PRINT_CAPABILITY,
+  PRINT_ADAPTERS,
   buildPrintTestDocument,
   updatePrintProfileSchema,
+  type PrintAdapterId,
+  type PrintFunction,
   type PrintProfile,
   type PrintProfileKey,
   PRINT_PROFILE_KEYS,
@@ -13,9 +15,14 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { PermissionGate } from '@/components/PermissionGate';
+import { PwaInstallHint } from '@/components/PwaInstallHint';
+import { PrintQueueRecoveryBanner } from '@/components/PrintQueueRecoveryBanner';
 import { useCompanyBrand } from '@/hooks/useCompanyBrand';
+import { detectPlatformLabel, getDeviceFingerprint } from '@/lib/deviceFingerprint';
 import { supabase } from '@/lib/supabase';
-import { buildPreviewHtml, executePrint } from '@/print/printOrchestrator';
+import { listElectronPrinters } from '@/print/adapters/electronAdapter';
+import { buildPreviewHtml } from '@/print/printOrchestrator';
+import { enqueueAndProcessPrint, profileKeyForFunction } from '@/print/printQueueService';
 
 type DbProfile = {
   id: string;
@@ -54,6 +61,26 @@ export function PrintingPage() {
   const [previewCopy, setPreviewCopy] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [printFunction, setPrintFunction] = useState<PrintFunction>('ticket');
+  const [adapterId, setAdapterId] = useState<PrintAdapterId>('web_system');
+  const [printerName, setPrinterName] = useState('');
+  const [electronPrinters, setElectronPrinters] = useState<Array<{ name: string; isDefault: boolean }>>([]);
+  const [matrixDisclaimer, setMatrixDisclaimer] = useState('');
+  const [matrixEntries, setMatrixEntries] = useState<Array<{ platform: string; deployment: string; printPath: string; status: string }>>([]);
+
+  useEffect(() => {
+    void fetch('/compatibility-matrix.json')
+      .then((r) => r.json())
+      .then((j) => {
+        setMatrixDisclaimer(String(j.disclaimer ?? ''));
+        setMatrixEntries(Array.isArray(j.entries) ? j.entries.slice(0, 4) : []);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    setSelectedKey(profileKeyForFunction(printFunction) as PrintProfileKey);
+  }, [printFunction]);
 
   const profilesQuery = useQuery({
     queryKey: ['print-profiles'],
@@ -77,8 +104,22 @@ export function PrintingPage() {
     },
   });
 
-  const selectedRow = profilesQuery.data?.find((p) => p.profile_key === selectedKey);
+  const selectedKeyFromFunction = profileKeyForFunction(printFunction) as PrintProfileKey;
+  const selectedRow =
+    profilesQuery.data?.find((p) => p.profile_key === selectedKeyFromFunction) ??
+    profilesQuery.data?.find((p) => p.profile_key === selectedKey);
   const selectedProfile = selectedRow ? mapProfile(selectedRow) : null;
+
+  useQuery({
+    queryKey: ['electron-printers'],
+    queryFn: async () => {
+      const list = await listElectronPrinters();
+      setElectronPrinters(list);
+      const def = list.find((p) => p.isDefault);
+      if (def && !printerName) setPrinterName(def.name);
+      return list;
+    },
+  });
 
   const locale = i18n.language === 'en' ? 'en' : 'es';
   const previewHtml = useMemo(() => {
@@ -126,16 +167,46 @@ export function PrintingPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['print-profiles'] }),
   });
 
-  async function runPrint(channel: 'system_dialog' | 'pdf_download', opts?: { reprint?: boolean }) {
+  const saveBinding = useMutation({
+    mutationFn: async () => {
+      const { data: company, error: companyError } = await supabase.from('companies').select('id').single();
+      if (companyError || !company) throw companyError ?? new Error('Sin empresa');
+      const fingerprint = getDeviceFingerprint();
+      const { error } = await supabase.from('print_device_bindings').upsert(
+        {
+          company_id: company.id,
+          device_fingerprint: fingerprint,
+          device_label: `${detectPlatformLabel()} — ${fingerprint.slice(0, 8)}`,
+          print_function: printFunction,
+          adapter: adapterId,
+          printer_name: printerName || null,
+          paper_hint: selectedProfile?.useThermal
+            ? selectedProfile.thermalWidth
+            : selectedProfile?.paperFormat ?? null,
+        },
+        { onConflict: 'company_id,device_fingerprint,print_function' },
+      );
+      if (error) throw error;
+    },
+  });
+
+  async function runPrint(opts?: { reprint?: boolean; forceAdapter?: PrintAdapterId }) {
     if (!selectedProfile || !brandQuery.data) return;
     setStatusMsg(null);
     setBusy(true);
+    const chosen = opts?.forceAdapter ?? adapterId;
     try {
-      const result = await executePrint({
+      await saveBinding.mutateAsync();
+      const result = await enqueueAndProcessPrint({
         profile: selectedProfile,
         brand: brandQuery.data,
         document: buildPrintTestDocument(locale),
-        channel,
+        adapterId: chosen,
+        printFunction,
+        printerName: printerName || null,
+        paperHint: selectedProfile.useThermal
+          ? selectedProfile.thermalWidth
+          : selectedProfile.paperFormat,
         isReprint: opts?.reprint,
         isMarkedCopy: opts?.reprint ?? previewCopy,
         sourceDocumentType: 'print_test',
@@ -145,11 +216,14 @@ export function PrintingPage() {
           ? 'printing.statusCompleted'
           : result.status === 'sent_to_spooler'
             ? 'printing.statusSpooler'
-            : result.status === 'unknown'
+            : result.status === 'uncertain'
               ? 'printing.statusUnknown'
-              : 'printing.statusFailed';
+              : result.status === 'failed'
+                ? 'printing.statusFailed'
+                : 'printing.statusSpooler';
       setStatusMsg(t(key));
       await qc.invalidateQueries({ queryKey: ['print-jobs'] });
+      await qc.invalidateQueries({ queryKey: ['print-recoverable'] });
     } catch (err) {
       setStatusMsg(err instanceof Error ? err.message : t('printing.statusFailed'));
     } finally {
@@ -161,20 +235,84 @@ export function PrintingPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
+      <PrintQueueRecoveryBanner />
       <header>
         <h1 className="text-2xl font-semibold text-brand-navy">{t('printing.title')}</h1>
         <p className="text-sm text-slate-600">{t('printing.subtitle')}</p>
       </header>
 
+      <PwaInstallHint />
+
+      <section className="rounded-xl border border-border bg-white p-4 text-sm">
+        <h2 className="font-medium text-brand-navy">{t('printing.deviceSetupTitle')}</h2>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <label className="text-sm">
+            {t('printing.function')}
+            <select
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
+              value={printFunction}
+              onChange={(e) => setPrintFunction(e.target.value as PrintFunction)}
+            >
+              <option value="ticket">{t('printing.functionTicket')}</option>
+              <option value="invoice">{t('printing.functionInvoice')}</option>
+              <option value="report">{t('printing.functionReport')}</option>
+            </select>
+          </label>
+          <label className="text-sm">
+            {t('printing.adapter')}
+            <select
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
+              value={adapterId}
+              onChange={(e) => setAdapterId(e.target.value as PrintAdapterId)}
+            >
+              {Object.values(PRINT_ADAPTERS).map((a) => (
+                <option key={a.id} value={a.id}>
+                  {i18n.language === 'en' ? a.labelEn : a.labelEs}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {adapterId === 'electron_direct' ? (
+          <label className="mt-3 block text-sm">
+            {t('printing.printerName')}
+            <select
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
+              value={printerName}
+              onChange={(e) => setPrinterName(e.target.value)}
+            >
+              {electronPrinters.length === 0 ? (
+                <option value="">{t('printing.noPrintersDetected')}</option>
+              ) : (
+                electronPrinters.map((p) => (
+                  <option key={p.name} value={p.name}>
+                    {p.name}
+                    {p.isDefault ? ' (default)' : ''}
+                  </option>
+                ))
+              )}
+            </select>
+            <p className="mt-1 text-xs text-slate-500">{t('printing.instructions.electron')}</p>
+          </label>
+        ) : null}
+        {adapterId === 'rawbt_android' ? (
+          <p className="mt-2 text-xs text-amber-800">{t('printing.instructions.rawbt')}</p>
+        ) : null}
+        {adapterId === 'web_system' || adapterId === 'airprint_via_system' ? (
+          <p className="mt-2 text-xs text-slate-500">{t('printing.instructions.webSystem')}</p>
+        ) : null}
+      </section>
+
       <section className="rounded-xl border border-border bg-white p-4 text-sm text-slate-700">
         <h2 className="font-medium text-brand-navy">{t('printing.platformTitle')}</h2>
+        <p className="mt-1 text-xs">{matrixDisclaimer}</p>
         <ul className="mt-2 list-disc space-y-1 pl-5">
-          <li>{t('printing.platformWindows')}</li>
-          <li>{t('printing.platformAndroid')}</li>
-          <li>{t('printing.platformIos')}</li>
-          <li>{t('printing.platformUsb')}</li>
+          {matrixEntries.map((e) => (
+            <li key={`${e.platform}-${e.deployment}`}>
+              {e.platform}: {e.printPath} ({e.status})
+            </li>
+          ))}
         </ul>
-        <p className="mt-2 text-xs text-slate-500">{WEB_PRINT_CAPABILITY.note}</p>
       </section>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -285,13 +423,13 @@ export function PrintingPage() {
 
           <PermissionGate permission={PERMISSIONS.printExecute}>
             <div className="flex flex-wrap gap-2 pt-2">
-              <Button loading={busy} onClick={() => void runPrint('system_dialog')}>
+              <Button loading={busy} onClick={() => void runPrint()}>
                 {t('printing.testPrint')}
               </Button>
-              <Button variant="secondary" loading={busy} onClick={() => void runPrint('pdf_download')}>
+              <Button variant="secondary" loading={busy} onClick={() => void runPrint({ forceAdapter: 'web_pdf' })}>
                 {t('printing.downloadPdf')}
               </Button>
-              <Button variant="secondary" loading={busy} onClick={() => void runPrint('system_dialog', { reprint: true })}>
+              <Button variant="secondary" loading={busy} onClick={() => void runPrint({ reprint: true })}>
                 {t('printing.reprintCopy')}
               </Button>
             </div>

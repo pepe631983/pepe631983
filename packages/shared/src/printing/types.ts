@@ -12,13 +12,28 @@ export type PrintProfileKey = (typeof PRINT_PROFILE_KEYS)[number];
 
 export type PrintPaperFormat = 'letter' | 'a4';
 export type PrintThermalWidth = '58mm' | '80mm';
-export type PrintChannel = 'system_dialog' | 'pdf_download' | 'direct_device';
+export type PrintChannel =
+  | 'system_dialog'
+  | 'pdf_download'
+  | 'direct_device'
+  | 'rawbt_android'
+  | 'electron_direct'
+  | 'local_agent'
+  | 'airprint_via_system';
+
 export type PrintJobStatus =
-  | 'requested'
+  | 'pending'
+  | 'sending'
   | 'sent_to_spooler'
   | 'completed'
   | 'failed'
+  | 'uncertain'
+  | 'confirmed_printed'
+  /** legacy */
+  | 'requested'
   | 'unknown';
+
+export type PrintFunction = 'ticket' | 'invoice' | 'report';
 
 export type PrintContentOptions = {
   showLogo?: boolean;

@@ -11,6 +11,7 @@ import { SettingsPage } from '@/pages/SettingsPage';
 import { UsersRolesPage } from '@/pages/UsersRolesPage';
 import { ChartOfAccountsPage } from '@/pages/ChartOfAccountsPage';
 import { PrintingPage } from '@/pages/PrintingPage';
+import { PrintQueueRecoveryBanner } from '@/components/PrintQueueRecoveryBanner';
 
 const queryClient = new QueryClient();
 
@@ -45,7 +46,15 @@ export default function App() {
                 </Protected>
               }
             >
-              <Route index element={<DashboardPage />} />
+              <Route
+                index
+                element={
+                  <>
+                    <PrintQueueRecoveryBanner />
+                    <DashboardPage />
+                  </>
+                }
+              />
               <Route path="configuracion" element={<SettingsPage />} />
               <Route path="usuarios" element={<UsersRolesPage />} />
               <Route path="contabilidad/plan" element={<ChartOfAccountsPage />} />

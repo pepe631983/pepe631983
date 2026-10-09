@@ -119,11 +119,42 @@
       "sales_receipt": "Receipt / POS ticket"
     },
     "jobStatus": {
+      "pending": "Pending",
+      "sending": "Sending",
       "requested": "Requested",
       "sent_to_spooler": "Sent to printer",
       "completed": "PDF completed",
       "failed": "Failed",
-      "unknown": "Uncertain"
+      "uncertain": "Uncertain result",
+      "unknown": "Uncertain result",
+      "confirmed_printed": "Print confirmed by device"
+    },
+    "recoveryTitle": "Pending or uncertain print queue",
+    "recoveryBody": "Some jobs did not finish. Check the printer before reprinting.",
+    "recoveryNoAutoRetry": "No automatic retry to avoid duplicate copies.",
+    "recoveryRefresh": "Refresh status",
+    "deviceSetupTitle": "Printer on this device",
+    "function": "Function",
+    "functionTicket": "Tickets (58/80 mm)",
+    "functionInvoice": "Invoices (letter/A4)",
+    "functionReport": "Reports (letter/A4)",
+    "adapter": "Print method",
+    "printerName": "Installed printer",
+    "noPrintersDetected": "Use TCI Auto Zone Desktop (Windows/macOS)",
+    "instructions": {
+      "webSystem": "Opens the system dialog. On iPhone/iPad look for AirPrint when supported.",
+      "pdf": "Save the PDF and open it with your preferred app.",
+      "electron": "Run the desktop app (desktop/ folder) with the frontend running.",
+      "rawbt": "Install RawBT on Android. Verify your thermal model compatibility."
     }
+  },
+  "pwa": {
+    "title": "PWA install",
+    "notNative": "Browser install adds a home screen icon but is not a native app.",
+    "limitUsb": "Does not guarantee direct USB printer access from the browser.",
+    "limitBt": "Bluetooth and ESC/POS need helper apps or the desktop build.",
+    "usePdf": "Use PDF or system print as a stable fallback.",
+    "runtime": "Current mode",
+    "installHint": "Chrome/Edge: menu → Install app. iOS Safari: Share → Add to Home Screen."
   }
 }

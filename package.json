@@ -5,7 +5,8 @@
   "description": "TCI Auto Zone — ERP repuestos, inventario y contabilidad (Turks and Caicos)",
   "workspaces": [
     "frontend",
-    "packages/*"
+    "packages/*",
+    "desktop"
   ],
   "scripts": {
     "dev": "npm run dev -w frontend",
@@ -13,7 +14,9 @@
     "test": "npm run test -w @repuestos/shared",
     "lint": "npm run lint -w frontend",
     "db:reset": "supabase db reset",
-    "db:push": "supabase db push"
+    "db:push": "supabase db push",
+    "desktop:dev": "npm run dev -w frontend & npm run start:dev -w tci-auto-zone-desktop",
+    "desktop:start": "npm run start -w tci-auto-zone-desktop"
   },
   "engines": {
     "node": ">=20"

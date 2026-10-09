@@ -1,5 +1,5 @@
 /** Impresión mediante diálogo del sistema (Windows, macOS, iOS AirPrint vía compartir, Android). */
-export function printHtmlViaSystemDialog(html: string, _copies: number): Promise<'sent_to_spooler' | 'unknown'> {
+export function printHtmlViaSystemDialog(html: string, _copies: number): Promise<'sent_to_spooler' | 'uncertain'> {
   return new Promise((resolve, reject) => {
     const frame = document.createElement('iframe');
     frame.style.position = 'fixed';
@@ -23,7 +23,7 @@ export function printHtmlViaSystemDialog(html: string, _copies: number): Promise
     doc.close();
 
     let settled = false;
-    const finish = (status: 'sent_to_spooler' | 'unknown') => {
+    const finish = (status: 'sent_to_spooler' | 'uncertain') => {
       if (settled) return;
       settled = true;
       setTimeout(() => {
@@ -48,7 +48,7 @@ export function printHtmlViaSystemDialog(html: string, _copies: number): Promise
       // Si el navegador no dispara afterprint, no reintentamos — estado incierto.
       setTimeout(() => {
         win.removeEventListener('afterprint', onAfterPrint);
-        finish('unknown');
+        finish('uncertain');
       }, 30_000);
     }, 300);
   });

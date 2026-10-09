@@ -1,0 +1,14 @@
+{
+  "name": "tci-auto-zone-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TCI Auto Zone — escritorio Windows/macOS para impresión directa",
+  "main": "electron-main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "start:dev": "TCI_APP_URL=http://localhost:5173 NODE_ENV=development electron ."
+  },
+  "devDependencies": {
+    "electron": "^33.4.11"
+  }
+}

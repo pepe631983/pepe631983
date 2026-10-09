@@ -1,14 +1,18 @@
 # Impresión — TCI Auto Zone
 
-## Fase actual (web)
+## Fase actual
 
 | Función | Estado |
 |---------|--------|
 | Carta / A4 (factura, cotización, OC, reportes) | HTML + `@page` + diálogo del sistema / PDF |
 | Térmico 58 mm / 80 mm | Diseños CSS dedicados |
 | Vista previa, prueba, reimpresión **COPIA** | Pantalla `/impresion` |
-| Registro de trabajos | Tabla `print_jobs` |
-| ESC/POS, RawBT, Electron directo | **No implementado** (fase posterior) |
+| Cola persistente + recuperación | `print_jobs` + migración `00013` |
+| PWA instalable | `vite-plugin-pwa` (limitaciones documentadas) |
+| Electron Windows/macOS | `desktop/` impresoras instaladas |
+| RawBT Android | Adaptador experimental (resultado **incierto**) |
+| Agente local LAN | Reservado (`local_agent`) |
+| ESC/POS genérico | **No** |
 
 ## Archivos
 

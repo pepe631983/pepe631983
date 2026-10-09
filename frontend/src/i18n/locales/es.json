@@ -119,11 +119,42 @@
       "sales_receipt": "Recibo / ticket POS"
     },
     "jobStatus": {
+      "pending": "Pendiente",
+      "sending": "Enviando",
       "requested": "Solicitado",
       "sent_to_spooler": "Enviado a impresora",
       "completed": "PDF completado",
       "failed": "Fallido",
-      "unknown": "Incertidumbre"
+      "uncertain": "Resultado incierto",
+      "unknown": "Resultado incierto",
+      "confirmed_printed": "Impresión confirmada por dispositivo"
+    },
+    "recoveryTitle": "Cola de impresión pendiente o incierta",
+    "recoveryBody": "Hay trabajos que no terminaron. Revise la impresora antes de reimprimir.",
+    "recoveryNoAutoRetry": "No se reintenta automáticamente para evitar copias duplicadas.",
+    "recoveryRefresh": "Actualizar estado",
+    "deviceSetupTitle": "Impresora en este dispositivo",
+    "function": "Función",
+    "functionTicket": "Tickets (58/80 mm)",
+    "functionInvoice": "Facturas (carta/A4)",
+    "functionReport": "Reportes (carta/A4)",
+    "adapter": "Método de impresión",
+    "printerName": "Impresora instalada",
+    "noPrintersDetected": "Use TCI Auto Zone Desktop (Windows/macOS)",
+    "instructions": {
+      "webSystem": "Se abrirá el diálogo del sistema. En iPhone/iPad busque AirPrint si su impresora lo soporta.",
+      "pdf": "Guarde el PDF y ábralo con la app que prefiera.",
+      "electron": "Ejecute la app de escritorio (carpeta desktop/) con el frontend en marcha.",
+      "rawbt": "Instale RawBT en Android. Verifique compatibilidad real de su modelo térmico."
     }
+  },
+  "pwa": {
+    "title": "Instalación PWA",
+    "notNative": "Instalar desde el navegador acerca un icono a la pantalla de inicio, pero no es una app nativa.",
+    "limitUsb": "No garantiza acceso USB directo a impresoras desde el navegador.",
+    "limitBt": "Bluetooth y ESC/POS requieren apps auxiliares o la versión de escritorio.",
+    "usePdf": "Use PDF o impresión del sistema como alternativa estable.",
+    "runtime": "Modo actual",
+    "installHint": "En Chrome/Edge: menú → Instalar app. En iOS Safari: Compartir → Añadir a inicio."
   }
 }
