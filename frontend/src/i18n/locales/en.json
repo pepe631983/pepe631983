@@ -16,6 +16,10 @@
     "supplierInvoices": "Supplier invoices",
     "customers": "Customers",
     "collections": "Collections",
+    "returns": "Returns",
+    "cash": "Cash drawer",
+    "taxes": "Tax rates",
+    "periods": "Accounting periods",
     "signOut": "Sign out"
   },
   "auth": {
@@ -239,7 +243,64 @@
     "selectInvoice": "Select invoice…",
     "amount": "Amount",
     "submit": "Record payment",
-    "saved": "Payment recorded."
+    "saved": "Payment recorded.",
+    "noCashSession": "No open cash session: GL cash still posts; drawer tally requires an open session."
+  },
+  "cash": {
+    "title": "Cash drawer",
+    "subtitle": "Open, float, justified in/out, close with accounting variance.",
+    "openingFloat": "Opening float (USD)",
+    "open": "Open session",
+    "opened": "Cash session opened.",
+    "statusOpen": "Open session",
+    "expected": "Expected cash",
+    "openedAt": "Opened:",
+    "movements": "Movements",
+    "movementKind": "Type",
+    "deposit": "Deposit",
+    "withdrawal": "Withdrawal",
+    "amount": "Amount",
+    "reason": "Reason",
+    "defaultReason": "Manual movement",
+    "registerMovement": "Save movement",
+    "movementSaved": "Movement saved.",
+    "countedCash": "Counted cash at close",
+    "close": "Close session",
+    "closed": "Session closed. Variance posted: {{diff}} USD."
+  },
+  "returns": {
+    "title": "Returns",
+    "subtitle": "Partial or full against confirmed invoice; respects prior returns.",
+    "invoice": "Original invoice",
+    "selectInvoice": "Select…",
+    "refundKind": "Refund type",
+    "refundCash": "Cash (cash sale)",
+    "refundCredit": "Store credit (needs customer)",
+    "max": "max {{n}}",
+    "submit": "Confirm return",
+    "confirmed": "Return recorded.",
+    "noLines": "Enter return quantities.",
+    "needCashSession": "Open cash session for cash refunds."
+  },
+  "taxRates": {
+    "title": "Configurable tax rates",
+    "subtitle": "Define your real rates; each document stores the applied rate.",
+    "empty": "No rates yet. Add yours (no default tax is invented).",
+    "code": "Code",
+    "name": "Name",
+    "rate": "Percent",
+    "add": "Add rate",
+    "saved": "Rate saved."
+  },
+  "periods": {
+    "title": "Accounting periods",
+    "subtitle": "Close periods; operations on closed dates are rejected.",
+    "close": "Close period",
+    "closed": "Period closed."
+  },
+  "staging": {
+    "missingEnv": "Missing VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY. STAGING_DATABASE_URL is for CLI only, not the browser.",
+    "connectedHost": "Supabase project (browser)"
   },
   "inventory": {
     "title": "Product and stock intake",
@@ -267,6 +328,11 @@
     "printFailedSaleSaved": "Sale saved. Printing failed; recover via Reprint COPY or PDF.",
     "printQueueFailed": "Could not load invoice for printing.",
     "reprintCopy": "Reprint COPY (does not duplicate sale)",
-    "reprintFailed": "Could not register reprint."
+    "reprintFailed": "Could not register reprint.",
+    "taxRate": "Tax (optional)",
+    "noTax": "No tax",
+    "net": "Net",
+    "tax": "Tax",
+    "noCashSession": "No open cash session: cash sales won't tie to drawer tally."
   }
 }

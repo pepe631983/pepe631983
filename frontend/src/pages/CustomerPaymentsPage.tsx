@@ -27,12 +27,33 @@ export function CustomerPaymentsPage() {
     },
   });
 
+  const branchQuery = useQuery({
+    queryKey: ['default-branch-pay'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('branches').select('id').eq('is_default', true).maybeSingle();
+      if (error) throw error;
+      return data?.id as string | undefined;
+    },
+  });
+
+  const cashSessionQuery = useQuery({
+    queryKey: ['cash-session-pay', branchQuery.data],
+    enabled: Boolean(branchQuery.data),
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_open_cash_session', { p_branch_id: branchQuery.data! });
+      if (error) throw error;
+      return data as string | null;
+    },
+  });
+
   const collect = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.rpc('collect_customer_payment', {
         p_sales_invoice_id: invoiceId,
         p_amount: Number(amount),
         p_idempotency_key: crypto.randomUUID(),
+        p_cash_session_id: cashSessionQuery.data,
+        p_payment_method_id: null,
       });
       if (error) throw error;
       return data;
@@ -50,6 +71,7 @@ export function CustomerPaymentsPage() {
       <div className="mx-auto max-w-2xl space-y-4">
         <h1 className="text-2xl font-semibold text-brand-navy">{t('collections.title')}</h1>
         <p className="text-sm text-slate-600">{t('collections.subtitle')}</p>
+        {!cashSessionQuery.data ? <p className="text-xs text-amber-800">{t('collections.noCashSession')}</p> : null}
         <form
           className="space-y-3 rounded-xl border border-border bg-white p-4"
           onSubmit={(e) => {

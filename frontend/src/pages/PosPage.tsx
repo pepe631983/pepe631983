@@ -16,6 +16,7 @@ export function PosPage() {
   const brand = useCompanyBrand();
   const [cart, setCart] = useState<CartLine[]>([]);
   const [paymentKind, setPaymentKind] = useState<'cash' | 'credit'>('cash');
+  const [taxRateId, setTaxRateId] = useState<string>('');
   const [message, setMessage] = useState<string | null>(null);
   const [lastInvoiceId, setLastInvoiceId] = useState<string | null>(null);
 
@@ -33,33 +34,65 @@ export function PosPage() {
   const warehouseQuery = useQuery({
     queryKey: ['default-warehouse'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('warehouses').select('id').eq('is_default', true).maybeSingle();
+      const { data, error } = await supabase.from('warehouses').select('id, branch_id').eq('is_default', true).maybeSingle();
       if (error) throw error;
-      return data?.id as string | undefined;
+      return data as { id: string; branch_id: string } | null;
+    },
+  });
+
+  const cashSessionQuery = useQuery({
+    queryKey: ['pos-cash-session', warehouseQuery.data?.branch_id],
+    enabled: Boolean(warehouseQuery.data?.branch_id),
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_open_cash_session', {
+        p_branch_id: warehouseQuery.data!.branch_id,
+      });
+      if (error) throw error;
+      return data as string | null;
+    },
+  });
+
+  const taxRatesQuery = useQuery({
+    queryKey: ['pos-tax-rates'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('tax_rates').select('id, code, name, rate_percent').eq('is_active', true);
+      if (error) throw error;
+      return data;
     },
   });
 
   const stockQuery = useQuery({
-    queryKey: ['pos-stock', warehouseQuery.data],
-    enabled: Boolean(warehouseQuery.data),
+    queryKey: ['pos-stock', warehouseQuery.data?.id],
+    enabled: Boolean(warehouseQuery.data?.id),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('inventory_balances')
         .select('product_id, quantity')
-        .eq('warehouse_id', warehouseQuery.data!);
+        .eq('warehouse_id', warehouseQuery.data!.id);
       if (error) throw error;
       return Object.fromEntries(data.map((r) => [r.product_id, Number(r.quantity)]));
     },
   });
 
-  const total = useMemo(
+  const netTotal = useMemo(
     () => cart.reduce((acc, l) => acc + l.qty * l.unitPrice - l.discount, 0),
     [cart],
   );
 
+  const taxPercent = useMemo(() => {
+    const row = taxRatesQuery.data?.find((r) => r.id === taxRateId);
+    return row ? Number(row.rate_percent) : 0;
+  }, [taxRateId, taxRatesQuery.data]);
+
+  const taxAmount = useMemo(
+    () => Math.round(((netTotal * taxPercent) / 100) * 100) / 100,
+    [netTotal, taxPercent],
+  );
+  const total = netTotal + (taxRateId ? taxAmount : 0);
+
   const confirmSale = useMutation({
     mutationFn: async () => {
-      const warehouseId = warehouseQuery.data;
+      const warehouseId = warehouseQuery.data?.id;
       if (!warehouseId) throw new Error('Sin almacén predeterminado');
       const idempotencyKey = crypto.randomUUID();
       const lines = cart.map((l) => ({
@@ -72,8 +105,11 @@ export function PosPage() {
         p_idempotency_key: idempotencyKey,
         p_warehouse_id: warehouseId,
         p_payment_kind: paymentKind,
-        p_amount_paid: paymentKind === 'cash' ? total : 0,
+        p_amount_paid: paymentKind === 'cash' ? total : null,
         p_lines: lines,
+        p_cash_session_id: paymentKind === 'cash' ? cashSessionQuery.data : null,
+        p_tax_rate_id: taxRateId || null,
+        p_payment_method_id: null,
       });
       if (error) throw error;
       return { invoiceId: String(invoiceId), idempotencyKey };
@@ -225,7 +261,30 @@ export function PosPage() {
             </ul>
             <p className="mt-3 text-lg font-semibold text-brand-navy">
               {t('pos.total')}: {total.toFixed(2)} USD
+              {taxRateId ? (
+                <span className="block text-sm font-normal text-slate-600">
+                  {t('pos.net')}: {netTotal.toFixed(2)} · {t('pos.tax')}: {taxAmount.toFixed(2)}
+                </span>
+              ) : null}
             </p>
+            {paymentKind === 'cash' && !cashSessionQuery.data ? (
+              <p className="text-xs text-amber-800">{t('pos.noCashSession')}</p>
+            ) : null}
+            <label className="mt-2 block text-sm">
+              {t('pos.taxRate')}
+              <select
+                className="mt-1 w-full rounded border px-2 py-1"
+                value={taxRateId}
+                onChange={(e) => setTaxRateId(e.target.value)}
+              >
+                <option value="">{t('pos.noTax')}</option>
+                {(taxRatesQuery.data ?? []).map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.code} ({Number(r.rate_percent)}%)
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="mt-2 block text-sm">
               {t('pos.paymentKind')}
               <select
