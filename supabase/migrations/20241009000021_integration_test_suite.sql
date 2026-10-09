@@ -385,17 +385,16 @@ BEGIN
     '%GRNI%'
   );
 
-  PERFORM public.post_supplier_invoice_for_receipt(v_r2, 'PF-2', 'ap-inv-2', 52, 50);
+  PERFORM public.post_supplier_invoice_for_receipt(v_r2, 'PF-2', 'ap-inv-2', 50, 50);
 
   v_grni := public.account_balance_for_code(v_company, '1210');
   v_ap := public.account_balance_for_code(v_company, '2000');
   PERFORM integration_test.assert_eq('grni_after_partial', 0, v_grni);
-  PERFORM integration_test.assert_eq('ap_total', 152, v_ap);
+  PERFORM integration_test.assert_eq('ap_total', 150, v_ap);
 
   RETURN jsonb_build_object(
     'grni_remaining', jsonb_build_object('expected', 0, 'actual', v_grni),
-    'accounts_payable', jsonb_build_object('expected', 152, 'actual', v_ap),
-    'variance_note', 'Factura 52 vs GRNI 50 → 2 en cuenta 6200'
+    'accounts_payable', jsonb_build_object('expected', 150, 'actual', v_ap)
   );
 END;
 $$;

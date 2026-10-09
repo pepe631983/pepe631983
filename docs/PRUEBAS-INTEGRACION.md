@@ -72,9 +72,8 @@ Función `integration_test.run_suite()` (schema `integration_test`, solo rol **s
 
 ## Variación costo provisional vs facturado
 
-- Recepción: DR 1200 / CR 1210 al **costo provisional** de líneas.
-- Factura: DR 1210 (hasta `grni_amount_to_clear`) / CR 2000 por **total factura**.
-- Diferencia (`invoice_total - grni_cleared`) → cuenta **6200** (documentado en migración 00020).
+Ver política completa: [CONTABILIDAD-VARIACION-COMPRA.md](CONTABILIDAD-VARIACION-COMPRA.md).  
+Pruebas: `supplier_variance_unsold`, `supplier_variance_partial_sold`, `supplier_variance_all_sold`.
 
 ## Resultados de ejecución (agente 2026-10-09)
 
