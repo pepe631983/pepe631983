@@ -1,0 +1,60 @@
+{
+  "product": "TCI Auto Zone",
+  "updatedAt": "2026-10-09",
+  "disclaimer": "Solo se listan combinaciones probadas o validadas en laboratorio. No implica compatibilidad universal.",
+  "entries": [
+    {
+      "platform": "Windows 11",
+      "browser": "Chrome / Edge",
+      "deployment": "PWA o navegador",
+      "printPath": "web_system + web_pdf",
+      "printerExample": "Impresora láser/red genérica",
+      "thermal58mm": "No directo USB desde navegador; usar PDF o app Electron",
+      "thermal80mm": "No directo USB desde navegador; usar PDF o app Electron",
+      "status": "validated_lab"
+    },
+    {
+      "platform": "Windows 10/11",
+      "browser": "TCI Auto Zone Desktop (Electron)",
+      "deployment": "electron",
+      "printPath": "electron_direct",
+      "printerExample": "Impresora predeterminada del sistema",
+      "thermal58mm": "Según controlador OS; probar en sitio",
+      "thermal80mm": "Según controlador OS; probar en sitio",
+      "status": "validated_lab"
+    },
+    {
+      "platform": "macOS",
+      "browser": "Safari / Chrome",
+      "deployment": "PWA o navegador",
+      "printPath": "web_system + AirPrint si aparece",
+      "printerExample": "AirPrint compatible",
+      "status": "partial"
+    },
+    {
+      "platform": "Android",
+      "browser": "Chrome",
+      "deployment": "PWA instalada",
+      "printPath": "web_system; rawbt_android opcional",
+      "printerExample": "Térmica BT con RawBT (modelo a verificar)",
+      "status": "requires_on_site_test"
+    },
+    {
+      "platform": "iPhone / iPad",
+      "browser": "Safari",
+      "deployment": "PWA (limitaciones iOS)",
+      "printPath": "airprint_via_system + web_pdf",
+      "notes": "PWA no equivale a app nativa; sin USB/BT directo",
+      "status": "requires_on_site_test"
+    }
+  ],
+  "preProductionChecklist": [
+    "Impresión real ticket 80mm y 58mm",
+    "Factura carta/A4",
+    "Impresora apagada → estado fallido o incierto sin duplicar venta",
+    "Sin papel",
+    "Reinicio app con trabajos pending/uncertain",
+    "Reimpresión COPIA",
+    "Pérdida de red después de enviar trabajo"
+  ]
+}

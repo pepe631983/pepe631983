@@ -1,0 +1,3 @@
+-- Preferir la suite automatizada:
+--   npm run db:test
+-- Ver docs/PRUEBAS-INTEGRACION.md

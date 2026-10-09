@@ -1,0 +1,4 @@
+{
+  "name": "TCI Auto Zone",
+  "install": "bash .cursor/cloud-agent-install.sh"
+}
