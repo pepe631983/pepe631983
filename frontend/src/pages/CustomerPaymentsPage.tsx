@@ -71,7 +71,7 @@ export function CustomerPaymentsPage() {
   const bankAccounts = useQuery({
     queryKey: ['bank-accounts'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('bank_accounts').select('id, name, account_number').eq('is_active', true);
+      const { data, error } = await supabase.from('bank_accounts').select('id, name, account_number_masked').eq('is_active', true);
       if (error) throw error;
       return data;
     },
