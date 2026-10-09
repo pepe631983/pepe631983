@@ -3,11 +3,9 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "citext";
 
 -- Dinero: nunca usar float. Precisión estándar 4 decimales; costos unitarios pueden usar más en capa de aplicación.
-CREATE DOMAIN money_amount AS NUMERIC(19, 4)
-  CHECK (VALUE IS NOT NULL);
+CREATE DOMAIN money_amount AS NUMERIC(19, 4);
 
-CREATE DOMAIN quantity_amount AS NUMERIC(19, 6)
-  CHECK (VALUE IS NOT NULL);
+CREATE DOMAIN quantity_amount AS NUMERIC(19, 6);
 
 CREATE TYPE document_status AS ENUM ('draft', 'confirmed', 'reversed');
 

@@ -4,11 +4,6 @@ ALTER TYPE public.print_channel ADD VALUE IF NOT EXISTS 'electron_direct';
 ALTER TYPE public.print_channel ADD VALUE IF NOT EXISTS 'local_agent';
 ALTER TYPE public.print_channel ADD VALUE IF NOT EXISTS 'airprint_via_system';
 
-ALTER TYPE public.print_job_status ADD VALUE IF NOT EXISTS 'pending';
-ALTER TYPE public.print_job_status ADD VALUE IF NOT EXISTS 'sending';
-ALTER TYPE public.print_job_status ADD VALUE IF NOT EXISTS 'uncertain';
-ALTER TYPE public.print_job_status ADD VALUE IF NOT EXISTS 'confirmed_printed';
-
 CREATE TYPE public.print_function AS ENUM ('ticket', 'invoice', 'report');
 
 CREATE TABLE public.print_device_bindings (

@@ -29,6 +29,10 @@ GRANT EXECUTE ON FUNCTION public.integration_tests_enabled() TO service_role;
 ALTER TABLE public.goods_receipts
   ADD COLUMN IF NOT EXISTS grni_open_amount money_amount NOT NULL DEFAULT 0;
 
+ALTER TABLE public.supplier_invoices
+  ADD COLUMN IF NOT EXISTS grni_cleared money_amount NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS cost_variance money_amount NOT NULL DEFAULT 0;
+
 UPDATE public.goods_receipts gr
 SET grni_open_amount = GREATEST(
   0,
@@ -36,10 +40,6 @@ SET grni_open_amount = GREATEST(
   - (SELECT COALESCE(SUM(si.grni_cleared), 0) FROM public.supplier_invoices si WHERE si.goods_receipt_id = gr.id)
 )
 WHERE gr.receipt_kind = 'purchase_pending_invoice';
-
-ALTER TABLE public.supplier_invoices
-  ADD COLUMN IF NOT EXISTS grni_cleared money_amount NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS cost_variance money_amount NOT NULL DEFAULT 0;
 
 COMMENT ON COLUMN public.supplier_invoices.cost_variance IS
   'Diferencia factura vs costo provisional en GRNI; positivo = factura mayor (cargo a 6200).';

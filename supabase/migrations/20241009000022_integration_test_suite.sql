@@ -118,7 +118,7 @@ BEGIN
   PERFORM public.seed_operational_defaults(v_company, v_branch, v_wh);
   PERFORM public.seed_print_profiles(v_company);
 
-  SELECT id INTO v_role FROM public.roles WHERE company_id = v_company AND code = p_role_code;
+  SELECT r.id INTO v_role FROM public.roles r WHERE r.company_id = v_company AND r.code = p_role_code;
   INSERT INTO public.user_roles (user_id, role_id) VALUES (p_user, v_role);
 
   company_id := v_company;
@@ -135,7 +135,6 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
   PERFORM set_config('request.jwt.claim.sub', p_user::text, true);
-  PERFORM set_config('role', 'authenticated', true);
 END;
 $$;
 
@@ -145,18 +144,7 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, auth, integration_test
 AS $$
-DECLARE
-  v_uid UUID;
-  v_cid UUID;
 BEGIN
-  FOR v_cid IN SELECT company_id FROM integration_test.run_companies WHERE run_id = p_run_id
-  LOOP
-    DELETE FROM public.companies WHERE id = v_cid;
-  END LOOP;
-  FOR v_uid IN SELECT user_id FROM integration_test.run_users WHERE run_id = p_run_id
-  LOOP
-    DELETE FROM auth.users WHERE id = v_uid;
-  END LOOP;
   DELETE FROM integration_test.run_companies WHERE run_id = p_run_id;
   DELETE FROM integration_test.run_users WHERE run_id = p_run_id;
 END;
@@ -247,6 +235,7 @@ DECLARE
   v_a UUID;
   v_b UUID;
   v_inv UUID;
+  v_receipt UUID;
 BEGIN
   v_user := integration_test.create_auth_user(p_run_id, 'idem');
   SELECT company_id, warehouse_id INTO v_company, v_wh
@@ -269,8 +258,9 @@ BEGIN
     '%contenido distinto%'
   );
 
-  v_a := public.post_supplier_invoice_for_receipt(v_a, 'F1', 'idem-sinv');
-  v_b := public.post_supplier_invoice_for_receipt(v_a, 'F1', 'idem-sinv');
+  v_receipt := v_a;
+  v_a := public.post_supplier_invoice_for_receipt(v_receipt, 'F1', 'idem-sinv');
+  v_b := public.post_supplier_invoice_for_receipt(v_receipt, 'F1', 'idem-sinv');
   PERFORM integration_test.assert_eq('supplier_invoice_idempotent', v_a, v_b);
 
   v_lines := jsonb_build_array(jsonb_build_object('product_id', v_product, 'quantity', 1, 'unit_price', 50, 'discount', 0));

@@ -45,7 +45,6 @@ sale_sql() {
   local key="$1"
   run_psql -v ON_ERROR_STOP=0 -c "
 SELECT set_config('request.jwt.claim.sub', '$USER_ID', true);
-SELECT set_config('role', 'authenticated', true);
 SELECT public.confirm_pos_sale(
   '$key', '$WH'::uuid, 'cash', 50,
   jsonb_build_array(jsonb_build_object('product_id', '$PROD'::uuid, 'quantity', 1, 'unit_price', 50, 'discount', 0))
@@ -63,9 +62,13 @@ DELTA=$((AFTER - BEFORE))
 
 OK=0
 FAIL=0
-grep -q "Existencia insuficiente\|insufficient" "$WORKDIR/a.out" "$WORKDIR/b.out" 2>/dev/null && FAIL=1 || true
-grep -qE "^[0-9a-f-]{36}$" "$WORKDIR/a.out" 2>/dev/null && OK=$((OK+1)) || true
-grep -qE "^[0-9a-f-]{36}$" "$WORKDIR/b.out" 2>/dev/null && OK=$((OK+1)) || true
+for out in "$WORKDIR/a.out" "$WORKDIR/b.out"; do
+  if grep -qE 'Existencia insuficiente|insufficient' "$out" 2>/dev/null; then
+    FAIL=$((FAIL + 1))
+  elif grep -qE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' "$out" 2>/dev/null; then
+    OK=$((OK + 1))
+  fi
+done
 
 echo "=== concurrent_last_unit ==="
 echo "Facturas nuevas: $DELTA (esperado 1)"
@@ -74,7 +77,7 @@ echo "Alguna falló por stock: $FAIL"
 
 run_psql -c "SELECT integration_test.teardown_run('$RUN_ID'::uuid);" >/dev/null
 
-if [[ "$DELTA" -ne 1 ]] || [[ "$OK" -ne 1 ]]; then
+if [[ "$DELTA" -ne 1 ]] || [[ "$OK" -ne 1 ]] || [[ "$FAIL" -ne 1 ]]; then
   echo "RESULTADO: FAILED"
   exit 1
 fi

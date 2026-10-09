@@ -13,9 +13,7 @@ Fecha de ejecución en agente cloud: 2026-10-09.
 
 ## Integración SQL (motor comercial)
 
-Entorno (run `bc-d29d60e4-…`, 2026-10-09): **`STAGING_DATABASE_URL` inyectada** (`db:check:staging-secret` OK). Conexión **`password authentication failed`** — contraseña incorrecta o desactualizada en el secreto; ver `docs/PRUEBAS-STAGING-ULTIMA-EJECUCION.md`. Suite SQL **no ejecutada** hasta corregir auth.
-
-Fix scripts: parseo seguro de URI (`psql_staging` / `PGPASSWORD`) para contraseñas con `@`/`#`.
+Staging (2026-10-09, huella URI `d213f544c292`): **migraciones 00001–00031 aplicadas**, suite `integration_test.run_suite()` **9/9 OK** (ROLLBACK), concurrencia última unidad **PASSED**, `integration_tests_enabled=false` al cierre. Detalle esperado/obtenido: `docs/PRUEBAS-STAGING-ULTIMA-EJECUCION.md`.
 
 | Prueba SQL | Estado |
 |------------|--------|

@@ -1,32 +1,33 @@
 # Última ejecución staging
 
-Fecha UTC: 2026-10-09 (run `bc-d29d60e4-c5d3-40bc-85bb-945b550e21a4`)
+Fecha UTC: 2026-10-09T08:38:15Z  
+Host: `aws-0-us-east-1.pooler.supabase.com`  
+**Resultado:** suite 9/9 PASSED (ROLLBACK), concurrencia PASSED, pruebas desactivadas al final.
 
-Host: `aws-0-us-east-1.pooler.supabase.com:5432`
+## Escenario de referencia (esperado vs obtenido)
 
-## Resultado (3.er intento — acciones completadas en Portal)
+| Métrica | Esperado | Obtenido |
+|---------|----------|----------|
+| Inventario (uds) | 5 | 5 |
+| Caja (1000) | 420 | 420 |
+| CxC (1100) | 80 | 80 |
+| CxP (2000) | 600 | 600 |
+| Ventas netas (4000) | 500 | 500 |
+| COGS (5000) | 300 | 300 |
 
-| Paso | Estado |
-|------|--------|
-| Run cloud | Sigue `bc-d29d60e4-…` (mismo URL de agente) |
-| Huella URI (sha256/12) | `a8ace1c92ea9d4b7` (sin cambio → mismo valor que intentos anteriores) |
-| `npm run db:verify:staging` | **FAILED** — contraseña rechazada en pooler |
+## Log crudo
 
-## Resultado (2.º intento de secreto)
+BEGIN
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 r                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"results": [{"test": "reference_scenario", "detail": {"cash": {"actual": 420.0000, "expected": 420}, "net_sales": {"actual": 500.0000, "expected": 500}, "inventory_units": {"actual": 5.000000, "expected": 5}, "accounts_payable": {"actual": 600.0000, "expected": 600}, "cost_of_goods_sold": {"actual": 300.0000, "expected": 300}, "accounts_receivable": {"actual": 80.0000, "expected": 80}}, "status": "passed"}, {"test": "idempotency_all_ops", "detail": {"status": "ok"}, "status": "passed"}, {"test": "permissions_and_tenant", "detail": {"tenant": "ok", "permission_check": "seller_blocked_purchase"}, "status": "passed"}, {"test": "partial_ap_and_variance", "detail": {"grni_remaining": {"actual": 0.0000, "expected": 0}, "accounts_payable": {"actual": 150.0000, "expected": 150}}, "status": "passed"}, {"test": "rollback_on_fault", "detail": {"rollback_pos": "ok", "rollback_receipt": "ok"}, "status": "passed"}, {"test": "reconciliation_by_date", "detail": {"net_sales_today": {"actual": 30.0000, "expected": 30}}, "status": "passed"}, {"test": "supplier_variance_unsold", "detail": {"avg_unit_cost": 10.5000, "variance_to_inventory": 5}, "status": "passed"}, {"test": "supplier_variance_partial_sold", "detail": {"expense_sold": 5.0000, "to_inventory": 5.0000}, "status": "passed"}, {"test": "supplier_variance_all_sold", "detail": {"expense_sold": 8}, "status": "passed"}], "tests_run": 9, "suite_status": "passed", "pending_manual": ["concurrent_last_unit_two_psql"]}
+(1 row)
 
-| Paso | Estado |
-|------|--------|
-| `STAGING_DATABASE_URL` en proceso | OK (longitud **107**, sin cambio vs intento anterior) |
-| Usuario URI parseado | `postgres.dcfqaubuehnkniqcfvyg` |
-| Longitud contraseña en URI | 14 caracteres (sin espacios; sin placeholder `[YOUR-PASSWORD]`) |
-| Pooler `:5432` / `:6543` | **FAILED** — `password authentication failed` |
-| Host directo `db.*.supabase.co` | No usable (solo IPv6 desde este entorno) |
-| Migraciones / suite / concurrencia | **No ejecutado** |
-
-## Acción requerida
-
-1. Supabase → proyecto staging (`dcfqaubuehnkniqcfvyg`) → **Settings → Database → Reset database password**.
-2. Copie de nuevo la **Connection string (URI)** en modo Session (pooler `:5432`) y sustituya la contraseña.
-3. Si la contraseña contiene `@`, `#`, `%`, etc., use [codificación URL](https://developer.mozilla.org/en-US/docs/Glossary/Percent-encoding) en el secreto.
-4. Actualice el secreto **`STAGING_DATABASE_URL`** en Cursor (mismo entorno) y relance agente si hace falta.
-5. Reejecutar: `npm run db:verify:staging` luego `STAGING_ALLOW_PUSH=1 npm run db:staging:validate`.
+ROLLBACK
+- suite: PASSED
+=== concurrent_last_unit ===
+Facturas nuevas: 1 (esperado 1)
+Ventas exitosas detectadas: 1 (esperado 1)
+Alguna falló por stock: 1
+RESULTADO: PASSED
+- concurrent: PASSED
