@@ -280,7 +280,8 @@
     "submit": "Confirm return",
     "confirmed": "Return recorded.",
     "noLines": "Enter return quantities.",
-    "needCashSession": "Open cash session for cash refunds."
+    "needCashSession": "Open cash session for cash refunds.",
+    "creditAutoSplit": "Credit sale: return reduces A/R up to open balance; excess becomes store credit (no cash)."
   },
   "taxRates": {
     "title": "Configurable tax rates",

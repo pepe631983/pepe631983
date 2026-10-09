@@ -43,7 +43,7 @@ COMP=$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['company_id'])
 
 sale_sql() {
   local key="$1"
-  run_psql -v ON_ERROR_STOP=0 -c "
+  run_psql -t -A -v ON_ERROR_STOP=0 -c "
 SELECT set_config('request.jwt.claim.sub', '$USER_ID', true);
 SELECT public.confirm_pos_sale(
   '$key', '$WH'::uuid, 'cash', 50,
@@ -63,10 +63,15 @@ DELTA=$((AFTER - BEFORE))
 OK=0
 FAIL=0
 for out in "$WORKDIR/a.out" "$WORKDIR/b.out"; do
+  last_line="$(tail -1 "$out" | tr -d '[:space:]')"
   if grep -qE 'Existencia insuficiente|insufficient' "$out" 2>/dev/null; then
     FAIL=$((FAIL + 1))
-  elif grep -qE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' "$out" 2>/dev/null; then
+  elif [[ "$last_line" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]]; then
     OK=$((OK + 1))
+  else
+    echo "Salida inesperada en $out:" >&2
+    tail -5 "$out" >&2
+    FAIL=$((FAIL + 1))
   fi
 done
 

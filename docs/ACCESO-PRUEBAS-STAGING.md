@@ -12,12 +12,20 @@
 ## Entrar a la versión de pruebas
 
 1. Clonar el repo y rama `cursor/tci-caja-devoluciones-21a4` (o la PR activa hacia `main`).
-2. En `frontend/.env.local`:
+2. Generar `frontend/.env.local` (solo claves públicas):
 
-   ```env
-   VITE_SUPABASE_URL=https://<ref>.supabase.co
-   VITE_SUPABASE_ANON_KEY=<anon-key-del-proyecto-staging>
+   ```bash
+   # Requiere STAGING_DATABASE_URL en el entorno (agente/CLI) y el secreto:
+   export VITE_SUPABASE_ANON_KEY=<anon-key Dashboard → Settings → API>
+   npm run env:frontend-staging
    ```
+
+   | Variable | Obligatoria | Origen |
+   |----------|-------------|--------|
+   | `VITE_SUPABASE_URL` | Sí | Se deriva de `STAGING_DATABASE_URL` (`https://dcfqaubuehnkniqcfvyg.supabase.co` en staging actual) o se exporta manualmente |
+   | `VITE_SUPABASE_ANON_KEY` | **Sí** | **No** está en `STAGING_DATABASE_URL`; debe venir del Dashboard Supabase (clave **anon public**) |
+
+   Si falta **solo** `VITE_SUPABASE_ANON_KEY`, el script `npm run env:frontend-staging` termina con código 2 e indica ese nombre exacto.
 
 3. Instalar y arrancar:
 
@@ -58,6 +66,19 @@ STAGING_ALLOW_PUSH=1 npm run db:staging:validate
 ```
 
 Incluye suite `integration_test.run_suite()` (escenario referencia, idempotencia, caja/devoluciones E2E, redondeo impuesto, etc.).
+
+## Pruebas automatizadas vs manuales
+
+| Tipo | Comando / acción | Estado |
+|------|------------------|--------|
+| SQL integración (11 casos) | `npm run db:test:staging` | Automatizado en staging |
+| Concurrencia 2× psql | `npm run db:test:concurrent` | Automatizado (ver `docs/PRUEBAS-CONCURRENCIA.md`) |
+| E2E navegador staging | `npm run dev` + flujo en pantallas | **Manual pendiente** hasta configurar `VITE_SUPABASE_ANON_KEY` |
+| Impresión física | Impresoras del local | **No realizada** |
+
+## Enlace publicado
+
+No hay despliegue web público en este repositorio. La versión de pruebas es **local**: `npm run dev` apuntando al proyecto Supabase staging con `.env.local` anterior.
 
 ## Pendientes (no producción)
 

@@ -280,7 +280,8 @@
     "submit": "Confirmar devolución",
     "confirmed": "Devolución registrada.",
     "noLines": "Indique cantidades a devolver.",
-    "needCashSession": "Abra caja para reembolsos en efectivo."
+    "needCashSession": "Abra caja para reembolsos en efectivo.",
+    "creditAutoSplit": "Venta a crédito: la devolución reduce CxC hasta el saldo pendiente; el excedente va a saldo a favor (sin efectivo)."
   },
   "taxRates": {
     "title": "Impuestos configurables",

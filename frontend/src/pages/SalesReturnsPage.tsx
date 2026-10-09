@@ -41,7 +41,7 @@ export function SalesReturnsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sales_invoices')
-        .select('id, invoice_number, payment_kind, total')
+        .select('id, invoice_number, payment_kind, total, amount_paid')
         .eq('status', 'confirmed')
         .order('confirmed_at', { ascending: false })
         .limit(50);
@@ -72,6 +72,8 @@ export function SalesReturnsPage() {
     );
   }
 
+  const selectedInvoice = invoicesQuery.data?.find((i) => i.id === invoiceId);
+
   const confirmReturn = useMutation({
     mutationFn: async () => {
       const payload = lines
@@ -79,12 +81,13 @@ export function SalesReturnsPage() {
         .map((l) => ({ sales_invoice_line_id: l.lineId, quantity: Number(l.qty) }));
       if (payload.length === 0) throw new Error(t('returns.noLines'));
       const inv = invoicesQuery.data?.find((i) => i.id === invoiceId);
-      const needsCash = refundKind === 'cash' || inv?.payment_kind === 'cash';
+      const kind = inv?.payment_kind === 'credit' ? 'credit_balance' : refundKind;
+      const needsCash = kind === 'cash';
       const { data, error } = await supabase.rpc('confirm_sales_return', {
         p_idempotency_key: crypto.randomUUID(),
         p_original_invoice_id: invoiceId,
         p_lines: payload,
-        p_refund_kind: refundKind,
+        p_refund_kind: kind,
         p_cash_session_id: needsCash ? sessionQuery.data : null,
       });
       if (error) throw error;
@@ -123,17 +126,21 @@ export function SalesReturnsPage() {
 
         {lines.length > 0 ? (
           <>
-            <label className="block text-sm">
-              {t('returns.refundKind')}
-              <select
-                className="mt-1 w-full rounded-lg border border-border px-3 py-2"
-                value={refundKind}
-                onChange={(e) => setRefundKind(e.target.value as 'cash' | 'credit_balance')}
-              >
-                <option value="cash">{t('returns.refundCash')}</option>
-                <option value="credit_balance">{t('returns.refundCredit')}</option>
-              </select>
-            </label>
+            {selectedInvoice?.payment_kind === 'credit' ? (
+              <p className="text-sm text-slate-600">{t('returns.creditAutoSplit')}</p>
+            ) : (
+              <label className="block text-sm">
+                {t('returns.refundKind')}
+                <select
+                  className="mt-1 w-full rounded-lg border border-border px-3 py-2"
+                  value={refundKind}
+                  onChange={(e) => setRefundKind(e.target.value as 'cash' | 'credit_balance')}
+                >
+                  <option value="cash">{t('returns.refundCash')}</option>
+                  <option value="credit_balance">{t('returns.refundCredit')}</option>
+                </select>
+              </label>
+            )}
             {refundKind === 'cash' && !sessionQuery.data ? (
               <p className="text-sm text-amber-800">{t('returns.needCashSession')}</p>
             ) : null}
