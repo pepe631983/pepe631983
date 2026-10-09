@@ -8,6 +8,11 @@ if [[ -z "${STAGING_DATABASE_URL:-}" ]] && ! is_local_supabase "$URL"; then
   echo "Configure STAGING_DATABASE_URL."
   exit 2
 fi
-psql "$URL" -v ON_ERROR_STOP=1 -c "SELECT public.disable_integration_tests();"
-psql "$URL" -v ON_ERROR_STOP=1 -c "SELECT integration_test.assert_tests_disabled();"
+if is_local_supabase "$URL"; then
+  psql "$URL" -v ON_ERROR_STOP=1 -c "SELECT public.disable_integration_tests();"
+  psql "$URL" -v ON_ERROR_STOP=1 -c "SELECT integration_test.assert_tests_disabled();"
+else
+  psql_staging "$URL" -v ON_ERROR_STOP=1 -c "SELECT public.disable_integration_tests();"
+  psql_staging "$URL" -v ON_ERROR_STOP=1 -c "SELECT integration_test.assert_tests_disabled();"
+fi
 echo "integration_tests_enabled=false verificado."

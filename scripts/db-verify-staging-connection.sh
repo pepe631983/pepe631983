@@ -24,10 +24,10 @@ else
   echo "Revise manualmente que este host corresponde a staging."
 fi
 
-psql "$URL" -v ON_ERROR_STOP=1 -c "SELECT current_database() AS db, version() IS NOT NULL AS ok;" -c "BEGIN; SELECT 1; ROLLBACK;" >/dev/null
+psql_staging "$URL" -v ON_ERROR_STOP=1 -c "SELECT current_database() AS db, version() IS NOT NULL AS ok;" -c "BEGIN; SELECT 1; ROLLBACK;" >/dev/null
 echo "Conexión OK. Transacciones BEGIN/ROLLBACK soportadas."
 
-MIG=$(psql "$URL" -t -A -c "SELECT COUNT(*) FROM supabase_migrations.schema_migrations" 2>/dev/null || echo "0")
+MIG=$(psql_staging "$URL" -t -A -c "SELECT COUNT(*) FROM supabase_migrations.schema_migrations" 2>/dev/null || echo "0")
 if [[ "$MIG" == "0" ]]; then
   echo "Aviso: no se leyó supabase_migrations; aplique migraciones (Paso 2) antes de pruebas."
 else

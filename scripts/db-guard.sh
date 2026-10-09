@@ -41,6 +41,52 @@ is_local_supabase() {
   [[ "$hp" == "127.0.0.1:54322" || "$hp" == "localhost:54322" ]]
 }
 
+# libpq/psql interpretan mal URIs si la contraseña contiene @, #, etc. (primer @ = host).
+apply_staging_psql_env() {
+  local url="$1"
+  eval "$(
+    python3 - "$url" <<'PY'
+import sys
+from urllib.parse import unquote
+
+url = sys.argv[1]
+rest = url.split("://", 1)[-1]
+at = rest.rfind("@")
+if at < 1:
+    sys.exit("invalid STAGING_DATABASE_URL (missing @ host separator)")
+userpass, hostpath = rest[:at], rest[at + 1 :]
+user, sep, password = userpass.partition(":")
+if not sep:
+    sys.exit("invalid STAGING_DATABASE_URL (missing password)")
+hostpart = hostpath.split("/", 1)[0]
+db = "postgres"
+if "/" in hostpath:
+    db = hostpath.split("/", 1)[1].split("?", 1)[0] or "postgres"
+host, _, port = hostpart.partition(":")
+port = port or "5432"
+user = unquote(user)
+password = unquote(password)
+
+def sh(val: str) -> str:
+    return "'" + val.replace("'", "'\"'\"'") + "'"
+
+print(f"export PGHOST={sh(host)}")
+print(f"export PGPORT={sh(port)}")
+print(f"export PGUSER={sh(user)}")
+print(f"export PGDATABASE={sh(db)}")
+print(f"export PGPASSWORD={sh(password)}")
+print("export PGSSLMODE=require")
+PY
+  )"
+}
+
+psql_staging() {
+  local url="$1"
+  shift
+  apply_staging_psql_env "$url"
+  psql "$@"
+}
+
 print_environment_info() {
   local url="$1"
   local local_flag="no"

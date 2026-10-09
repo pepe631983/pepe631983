@@ -25,7 +25,7 @@ else
 fi
 
 echo "=== Habilitar pruebas (staging) ==="
-psql "$URL" -v ON_ERROR_STOP=1 -c "
+psql_staging "$URL" -v ON_ERROR_STOP=1 -c "
 UPDATE public.database_capabilities SET value = 'true' WHERE key = 'integration_tests_enabled';
 "
 
@@ -39,7 +39,7 @@ RESULT_FILE="$ROOT/docs/PRUEBAS-STAGING-ULTIMA-EJECUCION.md"
 } > "$RESULT_FILE"
 
 echo "=== Suite integración (ROLLBACK) ==="
-if psql "$URL" -v ON_ERROR_STOP=1 -c "BEGIN; SELECT integration_test.run_suite() AS r; ROLLBACK;" >> "$RESULT_FILE" 2>&1; then
+if psql_staging "$URL" -v ON_ERROR_STOP=1 -c "BEGIN; SELECT integration_test.run_suite() AS r; ROLLBACK;" >> "$RESULT_FILE" 2>&1; then
   echo "- suite: PASSED" >> "$RESULT_FILE"
 else
   echo "- suite: FAILED (ver log arriba)" >> "$RESULT_FILE"

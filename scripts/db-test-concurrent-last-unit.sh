@@ -13,10 +13,24 @@ elif ! is_local_supabase "$URL"; then
   exit 2
 fi
 
+PSQL_REMOTE=0
+if ! is_local_supabase "$URL"; then
+  apply_staging_psql_env "$URL"
+  PSQL_REMOTE=1
+fi
+
+run_psql() {
+  if [[ "$PSQL_REMOTE" == 1 ]]; then
+    psql "$@"
+  else
+    psql "$URL" "$@"
+  fi
+}
+
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 
-FIX_LINE=$(psql "$URL" -v ON_ERROR_STOP=1 -t -A -c "
+FIX_LINE=$(run_psql -v ON_ERROR_STOP=1 -t -A -c "
 UPDATE public.database_capabilities SET value = 'true' WHERE key = 'integration_tests_enabled';
 SELECT integration_test.prepare_concurrent_last_unit(integration_test.new_run_id());
 " | tail -1)
@@ -29,7 +43,7 @@ COMP=$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['company_id'])
 
 sale_sql() {
   local key="$1"
-  psql "$URL" -v ON_ERROR_STOP=0 -c "
+  run_psql -v ON_ERROR_STOP=0 -c "
 SELECT set_config('request.jwt.claim.sub', '$USER_ID', true);
 SELECT set_config('role', 'authenticated', true);
 SELECT public.confirm_pos_sale(
@@ -38,13 +52,13 @@ SELECT public.confirm_pos_sale(
 );" 2>&1
 }
 
-BEFORE=$(psql "$URL" -t -A -c "SELECT COUNT(*) FROM public.sales_invoices WHERE company_id = '$COMP'::uuid")
+BEFORE=$(run_psql -t -A -c "SELECT COUNT(*) FROM public.sales_invoices WHERE company_id = '$COMP'::uuid")
 
 sale_sql "conc-a-$$" > "$WORKDIR/a.out" 2>&1 &
 sale_sql "conc-b-$$" > "$WORKDIR/b.out" 2>&1 &
 wait
 
-AFTER=$(psql "$URL" -t -A -c "SELECT COUNT(*) FROM public.sales_invoices WHERE company_id = '$COMP'::uuid")
+AFTER=$(run_psql -t -A -c "SELECT COUNT(*) FROM public.sales_invoices WHERE company_id = '$COMP'::uuid")
 DELTA=$((AFTER - BEFORE))
 
 OK=0
@@ -58,7 +72,7 @@ echo "Facturas nuevas: $DELTA (esperado 1)"
 echo "Ventas exitosas detectadas: $OK (esperado 1)"
 echo "Alguna falló por stock: $FAIL"
 
-psql "$URL" -c "SELECT integration_test.teardown_run('$RUN_ID'::uuid);" >/dev/null
+run_psql -c "SELECT integration_test.teardown_run('$RUN_ID'::uuid);" >/dev/null
 
 if [[ "$DELTA" -ne 1 ]] || [[ "$OK" -ne 1 ]]; then
   echo "RESULTADO: FAILED"

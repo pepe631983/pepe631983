@@ -36,6 +36,7 @@
 | Nombre distinto | Debe ser exactamente `STAGING_DATABASE_URL` (mayúsculas y guiones bajos). |
 | Entorno equivocado | Secreto en el entorno vinculado a **este repo** ([enlace](https://cursor.com/dashboard/cloud-agents/environments/e/a53259a6-bcfb-11f1-977f-f6b8f2fcf9b2)), no otro Personal/Team. |
 | URI incompleta | Sustituir `[YOUR-PASSWORD]`; una línea; si la contraseña tiene `@` o `#`, [codificar URL](https://developer.mozilla.org/en-US/docs/Glossary/Percent-encoding) esos caracteres. |
+| `password authentication failed` con secreto presente | Resetee la contraseña en Supabase → Database, copie la URI nueva y **vuelva a guardar** el secreto (no reutilice una contraseña antigua). Los scripts usan `PGUSER=postgres.<ref>` vía parseo seguro de la URI. |
 | Panel del agente | Use el flujo **Add secret** que Cursor muestra cuando el agente lo solicita (no hace falta buscar Secrets a mano si aparece el formulario en el run). |
 
 El agente **no puede** escribir secretos en su cuenta Cursor; solo usted puede confirmarlos en ese formulario o en Dashboard → Environments → Secrets.

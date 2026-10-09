@@ -27,7 +27,7 @@ if [[ -z "${STAGING_DATABASE_URL:-}" ]]; then
 fi
 
 echo "Ejecutando suite dentro de transacción con ROLLBACK (no deja datos de prueba)..."
-psql "$URL" -v ON_ERROR_STOP=1 <<'SQL'
+psql_staging "$URL" -v ON_ERROR_STOP=1 <<'SQL'
 BEGIN;
 SELECT integration_test.run_suite() AS suite_result \gx
 ROLLBACK;
