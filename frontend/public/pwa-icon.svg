@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#0c2340"/>
+  <rect x="64" y="120" width="384" height="72" rx="12" fill="#c8102e"/>
+  <text x="256" y="175" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="48" font-weight="700">TCI</text>
+  <text x="256" y="320" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="40" font-weight="600">Auto Zone</text>
+</svg>

@@ -1,0 +1,25 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', system-ui, sans-serif;
+  /* TCI Auto Zone — azul oscuro, rojo, blanco */
+  --color-brand-navy: #0c2340;
+  --color-brand-navy-light: #16365c;
+  --color-brand-accent: #c8102e;
+  --color-brand-accent-hover: #a50d25;
+  --color-brand-50: #eef2f7;
+  --color-brand-600: #0c2340;
+  --color-brand-700: #081828;
+  --color-surface: #f4f6f9;
+  --color-border: #d9e2ec;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-surface text-slate-900 antialiased;
+}

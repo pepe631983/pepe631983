@@ -1,0 +1,33 @@
+{
+  "name": "tci-auto-zone",
+  "private": true,
+  "version": "0.1.0",
+  "description": "TCI Auto Zone — ERP repuestos, inventario y contabilidad (Turks and Caicos)",
+  "workspaces": [
+    "frontend",
+    "packages/*",
+    "desktop"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w frontend",
+    "build": "npm run build -w frontend",
+    "test": "npm run test -w @repuestos/shared",
+    "lint": "npm run lint -w frontend",
+    "db:reset": "echo 'Use npm run db:reset:local (solo 127.0.0.1:54322)' && exit 1",
+    "db:reset:local": "bash scripts/db-reset-local.sh",
+    "db:push": "supabase db push",
+    "db:test:local": "bash scripts/db-test-local.sh",
+    "db:test:staging": "bash scripts/db-test-staging.sh",
+    "db:verify:staging": "bash scripts/db-verify-staging-connection.sh",
+    "db:test:concurrent": "bash scripts/db-test-concurrent-last-unit.sh",
+    "db:integration:off": "bash scripts/db-integration-off.sh",
+    "db:staging:validate": "bash scripts/run-staging-validation.sh",
+    "db:check:staging-secret": "bash scripts/load-staging-env.sh",
+    "desktop:dev": "npm run dev -w frontend & npm run start:dev -w tci-auto-zone-desktop",
+    "desktop:start": "npm run start -w tci-auto-zone-desktop",
+    "desktop:pack": "npm run build -w frontend && npm run pack -w tci-auto-zone-desktop"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
