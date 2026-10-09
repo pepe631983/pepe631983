@@ -20,6 +20,12 @@ Este repositorio se construye **por etapas**; la Etapa 1 incluye base de datos, 
 └── docs/PLAN-IMPLEMENTACION.md
 ```
 
+## Instalación en dispositivos
+
+- **Web adaptable** + **PWA** instalable (`vite-plugin-pwa`). Ver limitaciones en pantalla Impresión y `docs/PWA-Y-DESKTOP.md`.
+- **Escritorio Electron** (`desktop/`) para impresoras instaladas en **Windows/macOS**.
+- Matriz de compatibilidad probada: `data/compatibility-matrix.json`.
+
 ## Impresión (web — fase 1)
 
 - Menú **Impresión**: perfiles carta/A4 y térmico **58 mm / 80 mm**, vista previa, **impresión de prueba** (diálogo del sistema), **PDF**, reimpresión con marca **COPIA**.
