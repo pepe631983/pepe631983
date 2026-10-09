@@ -47,6 +47,13 @@ export function CashPage() {
     },
   });
 
+  const invalidateAllCashSessionQueries = async () => {
+    await qc.invalidateQueries({ queryKey: ['cash-session'] });
+    await qc.invalidateQueries({ queryKey: ['cash-session-ret'] });
+    await qc.invalidateQueries({ queryKey: ['cash-session-pay'] });
+    await qc.invalidateQueries({ queryKey: ['pos-cash-session'] });
+  };
+
   const openSession = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.rpc('open_cash_session', {
@@ -58,7 +65,7 @@ export function CashPage() {
     },
     onSuccess: async () => {
       setMsg(t('cash.opened'));
-      await qc.invalidateQueries({ queryKey: ['cash-session'] });
+      await invalidateAllCashSessionQueries();
     },
     onError: (e: Error) => setMsg(e.message),
   });
@@ -77,7 +84,7 @@ export function CashPage() {
       setMovAmount('');
       setMovReason('');
       setMsg(t('cash.movementSaved'));
-      await qc.invalidateQueries({ queryKey: ['cash-session'] });
+      await invalidateAllCashSessionQueries();
     },
     onError: (e: Error) => setMsg(e.message),
   });

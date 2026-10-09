@@ -83,12 +83,22 @@ export function SalesReturnsPage() {
       const inv = invoicesQuery.data?.find((i) => i.id === invoiceId);
       const kind = inv?.payment_kind === 'credit' ? 'credit_balance' : refundKind;
       const needsCash = kind === 'cash';
+      let cashSessionId: string | null = null;
+      if (needsCash) {
+        if (!branchQuery.data) throw new Error(t('returns.needCashSession'));
+        const { data: openId, error: sessErr } = await supabase.rpc('get_open_cash_session', {
+          p_branch_id: branchQuery.data,
+        });
+        if (sessErr) throw sessErr;
+        if (!openId) throw new Error(t('returns.needCashSession'));
+        cashSessionId = openId;
+      }
       const { data, error } = await supabase.rpc('confirm_sales_return', {
         p_idempotency_key: crypto.randomUUID(),
         p_original_invoice_id: invoiceId,
         p_lines: payload,
         p_refund_kind: kind,
-        p_cash_session_id: needsCash ? sessionQuery.data : null,
+        p_cash_session_id: cashSessionId,
       });
       if (error) throw error;
       return data;
@@ -163,7 +173,11 @@ export function SalesReturnsPage() {
                 </li>
               ))}
             </ul>
-            <Button loading={confirmReturn.isPending} onClick={() => confirmReturn.mutate()}>
+            <Button
+              loading={confirmReturn.isPending}
+              disabled={confirmReturn.isPending}
+              onClick={() => confirmReturn.mutate()}
+            >
               {t('returns.submit')}
             </Button>
           </>

@@ -61,6 +61,8 @@ Capturas: `docs/ui-e2e-screenshots/` (01-dashboard … 04-conciliacion).
 
 En el desplegable de facturas, elegir línea con `· cash ·`. La factura `credit` sin cliente muestra error de saldo a favor.
 
+**Corrección (caché caja):** el informe manual del agente [Full UI E2E staging](bc-fcee250c-7555-5dbb-a6b7-88d6f8f902d6) reportó «Sesión de caja no válida» al devolver tras abrir caja en otra pantalla: React Query no refrescaba `cash-session-ret` al abrir/cerrar caja. Corregido en `CashPage` (invalidación cruzada) y `SalesReturnsPage` (relee sesión abierta al confirmar).
+
 ## Acceso desde su PC
 
 **Recomendado:** [ACCESO-WINDOWS-STAGING.md](./ACCESO-WINDOWS-STAGING.md) — clone + `frontend\.env.local` + `npx vite` → `http://127.0.0.1:5173/login`.
