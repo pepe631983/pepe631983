@@ -11,16 +11,16 @@ URL="$(resolve_db_url)"
 
 print_environment_info "$URL"
 
-if is_local_supabase "$URL"; then
-  echo "Aviso: use npm run db:test:local para Supabase local (misma suite, ROLLBACK)."
-fi
-
-if [[ -z "${STAGING_DATABASE_URL:-}" && ! is_local_supabase "$URL" ]]; then
+if [[ -z "${STAGING_DATABASE_URL:-}" ]]; then
+  if is_local_supabase "$URL"; then
+    echo "Use npm run db:test:local para Supabase local (este script es solo para STAGING remoto)."
+    exit 2
+  fi
   echo ""
-  echo "Para staging remoto configure (en su máquina o secretos del agente, NO en el chat):"
-  echo "  STAGING_DATABASE_URL=postgresql://postgres.[ref]:[PASSWORD]@aws-0-[region].pooler.supabase.com:6543/postgres"
-  echo "Obtenga la URI en: Supabase Dashboard → Project (staging) → Settings → Database → Connection string (URI)."
-  echo "Opcional: SUPABASE_PROJECT_REF solo para supabase db push (no ejecuta pruebas)."
+  echo "Configure (secretos del entorno, NO en el chat):"
+  echo "  STAGING_DATABASE_URL=postgresql://postgres.[ref]:[PASSWORD]@....pooler.supabase.com:6543/postgres"
+  echo "Dashboard → proyecto STAGING → Settings → Database → Connection string (URI)."
+  echo "Luego: UPDATE database_capabilities SET value='true' WHERE key='integration_tests_enabled';"
   exit 2
 fi
 
