@@ -44,6 +44,6 @@ if (error) {
   process.exit(1);
 }
 
-console.log('login_ok:', data.user?.email);
+console.log('login_ok: true');
 console.log('user_id:', data.user?.id);
 console.log('auth-probe-ui-login: PASSED');

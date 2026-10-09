@@ -5,6 +5,9 @@ desktop/release/
 .env.local
 .env.staging
 frontend/.env.local
+frontend/test-results/
+frontend/playwright-report/
+.staging-ui-test.credentials
 supabase/.temp/
 .DS_Store
 *.log

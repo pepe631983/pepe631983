@@ -61,6 +61,19 @@ No use usuarios insertados manualmente en `auth.users`. El usuario agente `tci.s
 
 Ver orden detallado en [ACCESO-PRUEBAS-STAGING.md](./ACCESO-PRUEBAS-STAGING.md#escenario-manual-en-pantallas-e2e).
 
+## Prueba UI automatizada (opcional, en el repo)
+
+Con secretos `STAGING_UI_TEST_*` configurados:
+
+```powershell
+cd frontend
+npm install
+cd ..
+npm run test:ui-staging-browser
+```
+
+Eso abre Chromium headless contra su `vite` local (arranque previo en otra ventana PowerShell).
+
 ## Pendientes (no producción)
 
 Impresión física, instalación en mostrador y validación fiscal en sitio — ver documentación principal de acceso.

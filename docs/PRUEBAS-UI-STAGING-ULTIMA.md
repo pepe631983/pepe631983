@@ -1,77 +1,80 @@
 # Pruebas de interfaz — staging (última ejecución)
 
-**Fecha UTC:** 2026-10-09 (continuación)  
+**Fecha UTC:** 2026-10-09  
 **Supabase:** `dcfqaubuehnkniqcfvyg.supabase.co`  
-**Clave navegador:** `sb_publishable_...` (`VITE_SUPABASE_ANON_KEY`)
+**Frontend:** `http://127.0.0.1:5175` (Vite en agente; puerto puede variar)
 
-## Auth — diagnóstico
+## Secretos (Cloud Agent)
 
-| Usuario | Origen | `signInWithPassword` (probe) | Notas |
-|---------|--------|------------------------------|--------|
-| `auto09719@gmail.com` | Dashboard Authentication | **OK** → `400 Invalid login credentials` con contraseña incorrecta (comportamiento esperado) | Sin empresa aún (`profiles` vacío). **Usar para E2E UI.** |
-| `tci.staging.e2e@cursor-agent.test` | SQL agente (renombrado en DB a `…repaired@example.com`) | **500** `Database error querying schema` | No usar; crear usuarios solo en Dashboard. |
-| Registro `/registro` | UI | **429** rate limit email (histórico) | Evitar signup masivo; Dashboard Add user. |
+| Variable | Disponible | Valor mostrado |
+|----------|------------|----------------|
+| `STAGING_UI_TEST_EMAIL` | Sí | Solo longitud / dominio (`gmail.com`, prefijo 9 chars) |
+| `STAGING_UI_TEST_PASSWORD` | Sí | Solo longitud (12) |
 
-**Causa probable del 500:** usuario creado por SQL/identidad manual incompatible con GoTrue hosted (no es fallo del esquema `auth` del proyecto ni de migraciones `public`). **No** se eliminaron usuarios ni se alteró el esquema Auth a ciegas.
-
-**Integración SQL:** migración `20241009000042_integration_auth_identities.sql` — `integration_test.create_auth_user` ahora inserta también `auth.identities` (solo usuarios `@invalid.local` de pruebas SQL).
-
-## Credenciales seguras (Cloud Agent)
-
-Secretos disponibles en el entorno del agente: `STAGING_DATABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
-
-**Faltan** (para automatizar login en el agente):
-
-- `STAGING_UI_TEST_EMAIL` — p. ej. `auto09719@gmail.com`
-- `STAGING_UI_TEST_PASSWORD` — la contraseña que definió en Dashboard
-
-Comandos (sin imprimir contraseña):
+Comprobación:
 
 ```bash
+test -n "$STAGING_UI_TEST_EMAIL" && echo "email: set (len=${#STAGING_UI_TEST_EMAIL})"
+test -n "$STAGING_UI_TEST_PASSWORD" && echo "password: set (len=${#STAGING_UI_TEST_PASSWORD})"
 npm run auth:probe-ui-login
-npm run test:ui-staging-e2e
 ```
 
-## Cómo abrir la app **desde su PC (Windows)**
+## Resultado A — Prueba **API** (no sustituye UI)
 
-Ver **[ACCESO-WINDOWS-STAGING.md](./ACCESO-WINDOWS-STAGING.md)** (PowerShell, sin `export` de Bash).
+Comando: `npm run test:ui-staging-e2e`
 
-Resumen: clone repo → `frontend\.env.local` con URL + publishable key → `npx vite` → **http://127.0.0.1:5173/login**
+| Paso | Resultado |
+|------|-----------|
+| login | **PASS** |
+| create_company_with_owner | **PASS** (ya existía) |
+| admin_permissions_owner | **PASS** (owner) |
+| compra (proveedor → GR → factura) | **PASS** |
+| caja apertura / cierre Δ=0 | **PASS** |
+| venta contado + crédito + cobro + devolución | **PASS** |
+| conciliación (3 filas, Δ=0) | **PASS** |
 
-> El `localhost` del Cloud Agent **no** es accesible desde su equipo; debe ejecutar el frontend localmente o usar la URL que Vite muestre en su máquina.
+**Resumen API:** `PASSED` (16/16 pasos)
 
-## Servidor en el agente (solo pruebas internas)
+## Resultado B — Prueba **UI real** (navegador)
+
+Comando: `npm run test:ui-staging-browser`  
+Motor: Playwright Chromium contra pantallas Vite (DOM, clics, formularios).
+
+| Paso | Resultado |
+|------|-----------|
+| Login | **PASS** |
+| Empresa | **PASS** (ya existía — Raquel Auto) |
+| Usuarios / permisos admin | **PASS** |
+| Proveedor + recepción + factura proveedor | **PASS** |
+| Caja (abrir o usar sesión) | **PASS** |
+| POS venta contado + crédito | **PASS** |
+| Cobros parcial | **PASS** |
+| Devolución (factura **cash**, no crédito) | **PASS** |
+| Cierre caja Δ=0 | **PASS** |
+| Conciliación Δ=0 | **PASS** |
+
+**Resumen UI:** **1 passed** (~7 s)
+
+Capturas: `docs/ui-e2e-screenshots/` (01-dashboard … 04-conciliacion).
+
+### Nota devoluciones UI
+
+En el desplegable de facturas, elegir línea con `· cash ·`. La factura `credit` sin cliente muestra error de saldo a favor.
+
+## Acceso desde su PC
+
+**Recomendado:** [ACCESO-WINDOWS-STAGING.md](./ACCESO-WINDOWS-STAGING.md) — clone + `frontend\.env.local` + `npx vite` → `http://127.0.0.1:5173/login`.
+
+**Túnel temporal (agente):** se probó `localtunnel` (`https://famous-yaks-kick.loca.lt`); respuesta **408** desde red externa — **no fiable** para preview. Use la app en su máquina con la guía Windows.
+
+## SQL de referencia
 
 ```bash
-npm run dev:staging
+STAGING_ALLOW_PUSH=0 npm run db:staging:validate
 ```
 
-En esta VM Vite puede usar **5175** si 5173/5174 están ocupados (ver consola).
+Suite 11/11 sin regresión.
 
-## Resultados E2E (flujo completo)
+## Pendiente producción
 
-| Paso | Resultado | Detalle |
-|------|-----------|---------|
-| Login UI | **PENDIENTE** | Requiere `STAGING_UI_TEST_PASSWORD` en secretos del agente o login manual en su PC |
-| Creación empresa | **PENDIENTE** | Tras login; RPC `create_company_with_owner` probado en suite SQL |
-| Permisos admin (owner) | **PENDIENTE** | Automatizable con `test:ui-staging-e2e` tras login |
-| Compra (GR + factura proveedor) | **PASS (SQL)** | Suite 11/11 incluye escenario tesorería |
-| Caja apertura/cierre | **PASS (SQL)** | Delta 0 en integración |
-| Venta / cobro / devolución | **PASS (SQL)** | Idem |
-| Conciliación deltas 0 | **PASS (SQL)** | `get_financial_reconciliation` |
-| Flujo en **pantallas** | **PENDIENTE** | Mismo backend; falta sesión UI autenticada en agente |
-
-## SQL (referencia)
-
-```bash
-STAGING_ALLOW_PUSH=1 npm run db:staging:validate
-```
-
-11/11 + concurrencia — sin regresión tras migración 00042 (aplicar push en staging).
-
-## Pendiente manual / producción
-
-- E2E navegador completo con usuario Dashboard (credenciales en secretos o PC local).
-- Concurrencia dos navegadores/POS.
-- **Impresión física** — no realizada.
-- **Instalación en equipos** — no realizada.
+Impresión física, instalación en mostrador, validación fiscal in situ.

@@ -27,6 +27,7 @@
     "validate:supabase-key": "bash scripts/validate-public-supabase-key.sh",
     "auth:probe-ui-login": "bash -c 'cd frontend && node ../scripts/auth-probe-ui-login.mjs'",
     "test:ui-staging-e2e": "bash -c 'cd frontend && node ../scripts/staging-ui-e2e.mjs'",
+    "test:ui-staging-browser": "bash -c 'set -a; source scripts/load-staging-ui-credentials.sh 2>/dev/null || true; set +a; cd frontend && npx playwright test -c playwright.staging.config.ts'",
     "db:check:staging-secret": "bash scripts/load-staging-env.sh",
     "desktop:dev": "npm run dev -w frontend & npm run start:dev -w tci-auto-zone-desktop",
     "desktop:start": "npm run start -w tci-auto-zone-desktop",
