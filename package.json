@@ -1,8 +1,8 @@
 {
-  "name": "repuestos-erp",
+  "name": "tci-auto-zone",
   "private": true,
   "version": "0.1.0",
-  "description": "ERP de repuestos automotrices — inventario y contabilidad",
+  "description": "TCI Auto Zone — ERP repuestos, inventario y contabilidad (Turks and Caicos)",
   "workspaces": [
     "frontend",
     "packages/*"

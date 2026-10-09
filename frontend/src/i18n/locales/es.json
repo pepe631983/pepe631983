@@ -1,0 +1,78 @@
+{
+  "app": {
+    "name": "TCI Auto Zone",
+    "tagline": "Repuestos y accesorios para automóviles — Turks and Caicos Islands"
+  },
+  "nav": {
+    "home": "Inicio",
+    "settings": "Configuración",
+    "users": "Usuarios y roles",
+    "chart": "Plan de cuentas",
+    "signOut": "Cerrar sesión"
+  },
+  "auth": {
+    "loginTitle": "Iniciar sesión",
+    "registerTitle": "Crear cuenta de usuario",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "passwordHint": "Contraseña (mín. 8 caracteres)",
+    "submitLogin": "Entrar",
+    "submitRegister": "Continuar",
+    "firstTime": "¿Primera vez?",
+    "createAccount": "Crear cuenta",
+    "haveAccount": "Ya tengo cuenta",
+    "registerHint": "Después registrará los datos de su empresa (paso obligatorio).",
+    "supabaseMissing": "Configure Supabase en frontend/.env.local (vea README.md)."
+  },
+  "companySetup": {
+    "title": "Registrar empresa",
+    "intro": "Crea sucursal, almacén, plan de cuentas, roles y series. Use modo demostración hasta completar pruebas; no use datos reales de clientes aún.",
+    "commercialName": "Nombre comercial",
+    "fullName": "Su nombre completo",
+    "demoMode": "Empresa en modo demostración (recomendado al inicio)",
+    "submit": "Crear empresa y continuar",
+    "regionNote": "Moneda USD · Zona horaria America/Grand_Turk · Configure dirección, logo e impuestos después en Configuración."
+  },
+  "dashboard": {
+    "title": "Panel principal",
+    "stage1Done": "Etapa 1: seguridad, configuración base y plan de cuentas.",
+    "demoBanner": "Modo demostración activo. No registre operaciones comerciales reales hasta finalizar pruebas integrales.",
+    "moduleStatus": "Estado del proyecto",
+    "whatNow": "Qué puede hacer ahora",
+    "now1": "Iniciar sesión con roles y permisos verificados en servidor (RLS).",
+    "now2": "Editar identidad y contacto en Configuración (si tiene permiso).",
+    "now3": "Consultar plan de cuentas base y roles predefinidos."
+  },
+  "settings": {
+    "title": "Configuración de la empresa",
+    "taxPending": "Impuestos y datos fiscales: pendientes de configuración y verificación antes de operar con datos reales. El sistema no inventa tasas ni formatos legales.",
+    "identity": "Identidad TCI Auto Zone",
+    "commercialName": "Nombre comercial",
+    "legalName": "Razón social",
+    "logoUrl": "URL del logo (subir imagen a su hosting o Supabase Storage)",
+    "address1": "Dirección línea 1",
+    "address2": "Dirección línea 2",
+    "city": "Ciudad / área",
+    "state": "Isla / región",
+    "postal": "Código postal",
+    "phone": "Teléfono público",
+    "email": "Correo público",
+    "website": "Sitio web",
+    "taxIdLabel": "Etiqueta de ID fiscal (ej. Tax Registration No.)",
+    "taxIdValue": "Número o ID fiscal",
+    "pricesIncludeTax": "Precios con impuesto incluido",
+    "save": "Guardar cambios",
+    "saved": "Configuración guardada.",
+    "loading": "Cargando configuración…",
+    "error": "No se pudo cargar la configuración."
+  },
+  "language": {
+    "label": "Idioma",
+    "es": "Español",
+    "en": "English"
+  },
+  "common": {
+    "loadingSession": "Cargando sesión…",
+    "processing": "Procesando…"
+  }
+}

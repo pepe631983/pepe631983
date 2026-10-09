@@ -1,0 +1,78 @@
+{
+  "app": {
+    "name": "TCI Auto Zone",
+    "tagline": "Auto parts and accessories — Turks and Caicos Islands"
+  },
+  "nav": {
+    "home": "Home",
+    "settings": "Settings",
+    "users": "Users & roles",
+    "chart": "Chart of accounts",
+    "signOut": "Sign out"
+  },
+  "auth": {
+    "loginTitle": "Sign in",
+    "registerTitle": "Create user account",
+    "email": "Email",
+    "password": "Password",
+    "passwordHint": "Password (min. 8 characters)",
+    "submitLogin": "Sign in",
+    "submitRegister": "Continue",
+    "firstTime": "First time here?",
+    "createAccount": "Create account",
+    "haveAccount": "I already have an account",
+    "registerHint": "Next you will register your company (required step).",
+    "supabaseMissing": "Configure Supabase in frontend/.env.local (see README.md)."
+  },
+  "companySetup": {
+    "title": "Register company",
+    "intro": "Creates branch, warehouse, chart of accounts, roles and document series. Use demo mode until testing is complete; do not use real customer data yet.",
+    "commercialName": "Trade name",
+    "fullName": "Your full name",
+    "demoMode": "Demo company (recommended at first)",
+    "submit": "Create company and continue",
+    "regionNote": "USD currency · America/Grand_Turk timezone · Set address, logo and taxes later in Settings."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "stage1Done": "Stage 1: security, base settings and chart of accounts.",
+    "demoBanner": "Demo mode is on. Do not record real commercial operations until integration tests are complete.",
+    "moduleStatus": "Project status",
+    "whatNow": "What you can do now",
+    "now1": "Sign in with server-verified roles and permissions (RLS).",
+    "now2": "Edit brand and contact details in Settings (if permitted).",
+    "now3": "View the default chart of accounts and system roles."
+  },
+  "settings": {
+    "title": "Company settings",
+    "taxPending": "Taxes and fiscal data: pending configuration and verification before using real data. The system does not invent rates or legal formats.",
+    "identity": "TCI Auto Zone identity",
+    "commercialName": "Trade name",
+    "legalName": "Legal name",
+    "logoUrl": "Logo URL (host image on your storage or Supabase Storage)",
+    "address1": "Address line 1",
+    "address2": "Address line 2",
+    "city": "City / area",
+    "state": "Island / region",
+    "postal": "Postal code",
+    "phone": "Public phone",
+    "email": "Public email",
+    "website": "Website",
+    "taxIdLabel": "Tax ID label (e.g. Tax Registration No.)",
+    "taxIdValue": "Tax ID number",
+    "pricesIncludeTax": "Prices include tax",
+    "save": "Save changes",
+    "saved": "Settings saved.",
+    "loading": "Loading settings…",
+    "error": "Could not load settings."
+  },
+  "language": {
+    "label": "Language",
+    "es": "Español",
+    "en": "English"
+  },
+  "common": {
+    "loadingSession": "Loading session…",
+    "processing": "Processing…"
+  }
+}

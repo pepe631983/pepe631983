@@ -1,6 +1,8 @@
-# Repuestos ERP
+# TCI Auto Zone
 
-Sistema profesional para venta de repuestos automotrices: inventario trazable, ventas, tesorería y **contabilidad de partida doble**. Este repositorio se construye **por etapas**; la Etapa 1 ya incluye base de datos, seguridad y configuración inicial.
+Sistema profesional para **TCI Auto Zone** (repuestos y accesorios automotrices, Turks and Caicos Islands): inventario trazable, ventas, tesorería y **contabilidad de partida doble** en **USD**. Idioma inicial **español**, con selector **inglés**. Identidad visual azul oscuro, rojo y blanco.
+
+Este repositorio se construye **por etapas**; la Etapa 1 incluye base de datos, seguridad y configuración inicial. Ver `docs/IDENTIDAD-TCI-AUTO-ZONE.md`.
 
 ## Estructura de carpetas
 

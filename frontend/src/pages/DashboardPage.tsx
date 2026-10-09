@@ -1,9 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCompanyBrand } from '@/hooks/useCompanyBrand';
 import { supabase } from '@/lib/supabase';
 
 export function DashboardPage() {
+  const { t } = useTranslation();
   const { profile } = useAuth();
+  const brand = useCompanyBrand();
   const companyQuery = useQuery({
     queryKey: ['company'],
     enabled: Boolean(profile?.company_id),
@@ -27,19 +31,24 @@ export function DashboardPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold text-slate-900">Panel principal</h1>
+        <h1 className="text-2xl font-semibold text-brand-navy">{t('dashboard.title')}</h1>
         <p className="text-slate-600">
-          {companyQuery.data?.commercial_name ?? '…'} — Etapa 1 completada: seguridad, configuración base y plan de cuentas sembrado.
+          {brand.data?.commercialName ?? companyQuery.data?.commercial_name ?? t('app.name')} — {t('dashboard.stage1Done')}
         </p>
         {companyQuery.data?.is_demo ? (
           <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            Modo demostración activo. No registre operaciones comerciales reales hasta finalizar pruebas integrales.
+            {t('dashboard.demoBanner')}
+          </p>
+        ) : null}
+        {brand.data?.taxConfigPending ? (
+          <p className="mt-2 rounded-lg border border-brand-accent/30 bg-red-50 px-3 py-2 text-sm text-brand-navy">
+            {t('settings.taxPending')}
           </p>
         ) : null}
       </header>
 
       <section className="rounded-xl border border-border bg-white p-4">
-        <h2 className="font-medium text-slate-900">Estado del proyecto</h2>
+        <h2 className="font-medium text-brand-navy">{t('dashboard.moduleStatus')}</h2>
         <ul className="mt-3 divide-y divide-slate-100">
           {modules.map((m) => (
             <li key={m.name} className="flex items-center justify-between py-2 text-sm">
@@ -51,11 +60,11 @@ export function DashboardPage() {
       </section>
 
       <section className="rounded-xl border border-border bg-white p-4 text-sm text-slate-600">
-        <h2 className="font-medium text-slate-900">Qué puede hacer ahora</h2>
+        <h2 className="font-medium text-brand-navy">{t('dashboard.whatNow')}</h2>
         <ul className="mt-2 list-disc space-y-1 pl-5">
-          <li>Iniciar sesión con roles y permisos verificados en servidor (RLS).</li>
-          <li>Editar datos generales en Configuración (si tiene permiso).</li>
-          <li>Consultar plan de cuentas base y roles predefinidos.</li>
+          <li>{t('dashboard.now1')}</li>
+          <li>{t('dashboard.now2')}</li>
+          <li>{t('dashboard.now3')}</li>
         </ul>
       </section>
     </div>

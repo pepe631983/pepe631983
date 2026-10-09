@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { Layout } from '@/components/Layout';
 import { LoginPage } from '@/pages/LoginPage';
@@ -13,11 +14,12 @@ import { ChartOfAccountsPage } from '@/pages/ChartOfAccountsPage';
 const queryClient = new QueryClient();
 
 function Protected({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const { session, profile, loading } = useAuth();
   if (loading) {
     return (
       <div className="flex min-h-full items-center justify-center text-slate-600">
-        Cargando sesión…
+        {t('common.loadingSession')}
       </div>
     );
   }

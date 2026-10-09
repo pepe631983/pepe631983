@@ -15,10 +15,10 @@ export function Button({
   ...props
 }: Props) {
   const variants = {
-    primary: 'bg-brand-600 hover:bg-brand-700 text-white',
-    secondary: 'bg-white border border-slate-200 hover:bg-slate-50 text-slate-800',
+    primary: 'bg-brand-accent hover:bg-brand-accent-hover text-white shadow-sm',
+    secondary: 'bg-white border border-slate-200 hover:bg-slate-50 text-brand-navy',
     ghost: 'hover:bg-slate-100 text-slate-700',
-    danger: 'bg-red-600 hover:bg-red-700 text-white',
+    danger: 'bg-red-700 hover:bg-red-800 text-white',
   };
   return (
     <button

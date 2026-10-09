@@ -1,4 +1,6 @@
-# Plan de implementación — Repuestos ERP
+# Plan de implementación — TCI Auto Zone
+
+Identidad de negocio: `docs/IDENTIDAD-TCI-AUTO-ZONE.md`
 
 ## Arquitectura
 

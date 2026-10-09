@@ -1,15 +1,18 @@
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { createCompanySchema } from '@repuestos/shared';
+import { useTranslation } from 'react-i18next';
+import { createCompanySchema, DEFAULT_BUSINESS } from '@repuestos/shared';
+import { AuthShell } from '@/components/AuthShell';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { supabase } from '@/lib/supabase';
 
 export function CompanySetupPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { session, profile, refreshProfile, loading } = useAuth();
-  const [commercialName, setCommercialName] = useState('');
+  const [commercialName, setCommercialName] = useState(DEFAULT_BUSINESS.commercialName);
   const [fullName, setFullName] = useState('');
   const [isDemo, setIsDemo] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,6 +27,9 @@ export function CompanySetupPage() {
     const parsed = createCompanySchema.safeParse({
       commercialName,
       fullName,
+      countryCode: DEFAULT_BUSINESS.countryCode,
+      timezone: DEFAULT_BUSINESS.timezone,
+      currencyCode: DEFAULT_BUSINESS.currencyCode,
       isDemo,
     });
     if (!parsed.success) {
@@ -53,26 +59,24 @@ export function CompanySetupPage() {
   }
 
   return (
-    <div className="flex min-h-full items-center justify-center p-4">
+    <AuthShell>
       <div className="w-full max-w-lg rounded-2xl border border-border bg-white p-6 shadow-sm">
-        <h1 className="text-xl font-semibold">Registrar empresa</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Esta operación crea sucursal, almacén, plan de cuentas base, roles y series de documentos.
-          Marque &quot;modo demostración&quot; hasta completar pruebas; no use datos reales de clientes aún.
-        </p>
+        <h1 className="text-xl font-semibold text-brand-navy">{t('companySetup.title')}</h1>
+        <p className="mt-2 text-sm text-slate-600">{t('companySetup.intro')}</p>
+        <p className="mt-2 rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-navy">{t('companySetup.regionNote')}</p>
         <form className="mt-6 space-y-4" onSubmit={(e) => void onSubmit(e)}>
-          <Input label="Nombre comercial" required value={commercialName} onChange={(e) => setCommercialName(e.target.value)} />
-          <Input label="Su nombre completo" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
+          <Input label={t('companySetup.commercialName')} required value={commercialName} onChange={(e) => setCommercialName(e.target.value)} />
+          <Input label={t('companySetup.fullName')} required value={fullName} onChange={(e) => setFullName(e.target.value)} />
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={isDemo} onChange={(e) => setIsDemo(e.target.checked)} />
-            Empresa en modo demostración (recomendado al inicio)
+            {t('companySetup.demoMode')}
           </label>
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
           <Button type="submit" className="w-full" loading={submitting}>
-            Crear empresa y continuar
+            {t('companySetup.submit')}
           </Button>
         </form>
       </div>
-    </div>
+    </AuthShell>
   );
 }
