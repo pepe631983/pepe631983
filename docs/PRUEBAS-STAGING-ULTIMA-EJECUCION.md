@@ -4,6 +4,14 @@ Fecha UTC: 2026-10-09 (run `bc-d29d60e4-c5d3-40bc-85bb-945b550e21a4`)
 
 Host: `aws-0-us-east-1.pooler.supabase.com:5432`
 
+## Resultado (3.er intento — acciones completadas en Portal)
+
+| Paso | Estado |
+|------|--------|
+| Run cloud | Sigue `bc-d29d60e4-…` (mismo URL de agente) |
+| Huella URI (sha256/12) | `a8ace1c92ea9d4b7` (sin cambio → mismo valor que intentos anteriores) |
+| `npm run db:verify:staging` | **FAILED** — contraseña rechazada en pooler |
+
 ## Resultado (2.º intento de secreto)
 
 | Paso | Estado |
