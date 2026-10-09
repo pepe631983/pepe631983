@@ -26,8 +26,11 @@ Alternativa CI (GitHub Actions, no chat): `firebase login:ci` y guarde el token 
 ## Deploy
 
 ```bash
-npx -y firebase-tools@latest deploy --only hosting --project tci-auto-zone
+npm run deploy:hosting-staging
+# o: npx -y firebase-tools@latest deploy --only hosting --project tci-auto-zone
 ```
+
+**URL en producción de pruebas:** https://tci-auto-zone.web.app (requiere cuenta Google con rol Editor u Owner en IAM del proyecto Firebase).
 
 ## Supabase Auth (orígenes staging)
 

@@ -10,7 +10,11 @@ Fecha: generado tras validación en rama `cursor/requisitos-cliente-21a4` (PR #5
 
 ## URL HTTPS de pruebas
 
-No publicada en este run (falta **ID de proyecto Firebase** con Hosting; ver `docs/HOSTING-STAGING-FIREBASE.md`). Build listo: `npm run env:frontend-staging && npm run build -w frontend`.
+**Publicada:** https://tci-auto-zone.web.app (Firebase Hosting, proyecto `tci-auto-zone`, deploy 2026-10-09 UTC).
+
+Alias: https://tci-auto-zone.firebaseapp.com
+
+Frontend embebido: solo Supabase staging `dcfqaubuehnkniqcfvyg` + clave anon/publicable.
 
 ## Resultados por requisito
 
