@@ -16,7 +16,7 @@ Fecha de ejecución en agente cloud: 2026-10-09.
 | Prueba | Motivo |
 |--------|--------|
 | Instaladores `.exe` / `.dmg` firmados | Requiere Windows/macOS + certificados |
-| Supabase `confirm_pos_sale` integración | Sin Docker/Supabase local en agente |
+| `run_commercial_integration_tests()` (migr. 00019) | Sin Docker/Supabase local en agente — ver `docs/PRUEBAS-INTEGRACION.md` |
 | Impresión física térmica / red | Sin hardware |
 | PWA en iPhone / Android real | Requiere dispositivo + HTTPS |
 | Concurrencia dos dispositivos mismo print job | Requiere dos clientes contra BD |

@@ -27,12 +27,13 @@ export function InventoryPage() {
         p_sale_price: Number(price),
       });
       if (cpErr) throw cpErr;
-      const { error: rcvErr } = await supabase.rpc('receive_inventory', {
+      const lines = [{ product_id: productId, quantity: Number(qty), unit_cost: Number(cost) }];
+      const { error: rcvErr } = await supabase.rpc('confirm_goods_receipt', {
         p_warehouse_id: wh.id,
-        p_product_id: productId,
-        p_quantity: Number(qty),
-        p_unit_cost: Number(cost),
+        p_receipt_kind: 'opening_balance',
+        p_lines: lines,
         p_idempotency_key: crypto.randomUUID(),
+        p_reason: 'Saldo inicial desde alta de producto (demostración)',
       });
       if (rcvErr) throw rcvErr;
     },

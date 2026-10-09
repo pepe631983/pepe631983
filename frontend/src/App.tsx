@@ -15,6 +15,7 @@ import { PrintQueueRecoveryBanner } from '@/components/PrintQueueRecoveryBanner'
 import { PwaUpdatePrompt } from '@/components/PwaUpdatePrompt';
 import { PosPage } from '@/pages/PosPage';
 import { InventoryPage } from '@/pages/InventoryPage';
+import { ReconciliationPage } from '@/pages/ReconciliationPage';
 
 const queryClient = new QueryClient();
 
@@ -62,6 +63,7 @@ export default function App() {
               <Route path="configuracion" element={<SettingsPage />} />
               <Route path="usuarios" element={<UsersRolesPage />} />
               <Route path="contabilidad/plan" element={<ChartOfAccountsPage />} />
+              <Route path="contabilidad/conciliacion" element={<ReconciliationPage />} />
               <Route path="impresion" element={<PrintingPage />} />
               <Route path="pos" element={<PosPage />} />
               <Route path="inventario/alta" element={<InventoryPage />} />

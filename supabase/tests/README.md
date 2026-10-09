@@ -1,11 +1,12 @@
 # Pruebas de base de datos
 
-Ejecute con Supabase local:
+Ver guía completa: [docs/PRUEBAS-INTEGRACION.md](../docs/PRUEBAS-INTEGRACION.md).
 
 ```bash
-npx supabase start
-npx supabase db reset
-psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -f supabase/tests/stage2_accounting_example.sql
+npm run db:test
 ```
 
-El archivo `stage2_accounting_example.sql` se añadirá en la Etapa 2 para validar el ciclo compra → venta crédito → COGS → cobro.
+Archivos:
+
+- `integration_commercial_engine.sql` — suite principal (`run_commercial_integration_tests`).
+- `pos_accounting_example.sql` — notas manuales legacy.
