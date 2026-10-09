@@ -29,6 +29,7 @@
     "test:ui-staging-e2e": "bash -c 'cd frontend && node ../scripts/staging-ui-e2e.mjs'",
     "test:ui-staging-browser": "bash -c 'set -a; source scripts/load-staging-ui-credentials.sh 2>/dev/null || true; set +a; cd frontend && npx playwright test -c playwright.staging.config.ts'",
     "db:check:staging-secret": "bash scripts/load-staging-env.sh",
+    "export:company": "bash -c 'set -a; source scripts/load-staging-ui-credentials.sh 2>/dev/null || true; set +a; node scripts/export-company-snapshot.mjs'",
     "desktop:dev": "npm run dev -w frontend & npm run start:dev -w tci-auto-zone-desktop",
     "desktop:start": "npm run start -w tci-auto-zone-desktop",
     "desktop:pack": "npm run build -w frontend && npm run pack -w tci-auto-zone-desktop"

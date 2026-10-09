@@ -11,6 +11,9 @@ export function CustomersPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [duplicates, setDuplicates] = useState<Array<{ id: string; name: string; match_reason: string }>>([]);
   const [msg, setMsg] = useState<string | null>(null);
 
   const list = useQuery({
@@ -20,6 +23,19 @@ export function CustomersPage() {
       if (error) throw error;
       return data;
     },
+  });
+
+  const checkDupes = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc('find_customer_duplicates', {
+        p_name: name,
+        p_email: email || null,
+        p_phone: phone || null,
+      });
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: string; name: string; match_reason: string }>;
+    },
+    onSuccess: (rows) => setDuplicates(rows),
   });
 
   const create = useMutation({
@@ -49,10 +65,27 @@ export function CustomersPage() {
           }}
         >
           <Input label={t('customers.name')} value={name} onChange={(e) => setName(e.target.value)} required />
+          <Input label="Correo" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <Input label="Teléfono" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <Button type="button" variant="secondary" loading={checkDupes.isPending} className="self-end" onClick={() => checkDupes.mutate()}>
+            Buscar duplicados
+          </Button>
           <Button type="submit" loading={create.isPending} className="self-end">
             {t('customers.add')}
           </Button>
         </form>
+        {duplicates.length > 0 ? (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
+            <p className="font-medium">Posibles duplicados</p>
+            <ul className="mt-1 list-disc pl-5">
+              {duplicates.map((d) => (
+                <li key={d.id}>
+                  {d.name} ({d.match_reason})
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
         {msg ? <p className="text-sm">{msg}</p> : null}
         <ul className="divide-y rounded-xl border border-border bg-white">
           {(list.data ?? []).map((c) => (

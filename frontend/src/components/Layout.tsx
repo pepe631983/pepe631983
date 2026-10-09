@@ -24,6 +24,8 @@ export function Layout() {
     { to: '/tesoreria/caja', label: t('nav.cash'), permission: PERMISSIONS.cashSessionOpen },
     { to: '/impresion', label: t('nav.printing'), permission: PERMISSIONS.printExecute },
     { to: '/pos', label: t('nav.pos'), permission: PERMISSIONS.salesPos },
+    { to: '/ventas/cotizaciones', label: 'Cotizaciones', permission: PERMISSIONS.salesQuoteManage },
+    { to: '/inventario/consulta', label: 'Inventario', permission: PERMISSIONS.inventoryConsult },
     { to: '/compras/proveedores', label: t('nav.suppliers'), permission: PERMISSIONS.purchaseCreate },
     { to: '/compras/recepciones', label: t('nav.receipts'), permission: PERMISSIONS.purchasePost },
     { to: '/compras/facturas-proveedor', label: t('nav.supplierInvoices'), permission: PERMISSIONS.purchasePost },

@@ -25,6 +25,9 @@ import { CashPage } from '@/pages/CashPage';
 import { SalesReturnsPage } from '@/pages/SalesReturnsPage';
 import { TaxRatesPage } from '@/pages/TaxRatesPage';
 import { AccountingPeriodsPage } from '@/pages/AccountingPeriodsPage';
+import { QuotesPage } from '@/pages/QuotesPage';
+import { PublicQuotePage } from '@/pages/PublicQuotePage';
+import { InventoryConsultPage } from '@/pages/InventoryConsultPage';
 
 const queryClient = new QueryClient();
 
@@ -53,6 +56,7 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/registro" element={<RegisterPage />} />
             <Route path="/registro-empresa" element={<CompanySetupPage />} />
+            <Route path="/c/:token" element={<PublicQuotePage />} />
             <Route
               element={
                 <Protected>
@@ -79,7 +83,9 @@ export default function App() {
               <Route path="compras/proveedores" element={<SuppliersPage />} />
               <Route path="compras/recepciones" element={<GoodsReceiptPage />} />
               <Route path="compras/facturas-proveedor" element={<SupplierInvoicePage />} />
+              <Route path="ventas/cotizaciones" element={<QuotesPage />} />
               <Route path="ventas/clientes" element={<CustomersPage />} />
+              <Route path="inventario/consulta" element={<InventoryConsultPage />} />
               <Route path="ventas/cobros" element={<CustomerPaymentsPage />} />
               <Route path="ventas/devoluciones" element={<SalesReturnsPage />} />
               <Route path="tesoreria/caja" element={<CashPage />} />
