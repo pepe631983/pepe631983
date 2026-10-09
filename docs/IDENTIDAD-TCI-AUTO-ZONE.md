@@ -21,3 +21,7 @@ Aplicar en **todas las etapas** del ERP.
 ## Documentos futuros
 
 Facturas, recibos, cotizaciones, OC y reportes deben usar `DocumentBrandHeader` + nombre comercial configurado.
+
+## Impresión
+
+Ver `docs/IMPRESION.md`. Encabezados generados con `renderPrintDocumentHtml` y marca **TCI Auto Zone** / nombre comercial configurado.
