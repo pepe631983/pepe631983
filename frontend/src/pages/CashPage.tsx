@@ -2,14 +2,18 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { PERMISSIONS } from '@repuestos/shared';
+import { PosTerminal } from '@/components/PosTerminal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { PermissionGate } from '@/components/PermissionGate';
 import { supabase } from '@/lib/supabase';
 
+type Tab = 'sell' | 'treasury';
+
 export function CashPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const [tab, setTab] = useState<Tab>('sell');
   const [float, setFloat] = useState('100');
   const [counted, setCounted] = useState('');
   const [movAmount, setMovAmount] = useState('');
@@ -65,6 +69,7 @@ export function CashPage() {
     },
     onSuccess: async () => {
       setMsg(t('cash.opened'));
+      setTab('sell');
       await invalidateAllCashSessionQueries();
     },
     onError: (e: Error) => setMsg(e.message),
@@ -111,7 +116,7 @@ export function CashPage() {
 
   return (
     <PermissionGate permission={PERMISSIONS.cashSessionOpen}>
-      <div className="mx-auto max-w-3xl space-y-6">
+      <div className="mx-auto max-w-5xl space-y-6">
         <h1 className="text-2xl font-semibold text-brand-navy">{t('cash.title')}</h1>
         <p className="text-sm text-slate-600">{t('cash.subtitle')}</p>
         {msg ? <p className="rounded-lg border border-border bg-slate-50 p-3 text-sm">{msg}</p> : null}
@@ -140,59 +145,84 @@ export function CashPage() {
               </p>
             </section>
 
-            <section className="rounded-xl border border-border bg-white p-4">
-              <h2 className="font-semibold text-brand-navy">{t('cash.movements')}</h2>
-              <ul className="mt-2 divide-y text-sm">
-                {(sessionQuery.data?.moves ?? []).map((m) => (
-                  <li key={m.id} className="flex justify-between py-2">
-                    <span>
-                      {m.movement_kind} {m.reason ? `· ${m.reason}` : ''}
-                    </span>
-                    <span className="font-mono">{Number(m.amount)}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            <form
-              className="grid gap-3 rounded-xl border border-border bg-white p-4 md:grid-cols-2"
-              onSubmit={(e) => {
-                e.preventDefault();
-                registerMov.mutate();
-              }}
-            >
-              <label className="text-sm md:col-span-2">
-                {t('cash.movementKind')}
-                <select
-                  className="mt-1 w-full rounded-lg border border-border px-3 py-2"
-                  value={movKind}
-                  onChange={(e) => setMovKind(e.target.value as 'deposit' | 'withdrawal')}
-                >
-                  <option value="deposit">{t('cash.deposit')}</option>
-                  <option value="withdrawal">{t('cash.withdrawal')}</option>
-                </select>
-              </label>
-              <Input label={t('cash.amount')} type="number" step="0.01" value={movAmount} onChange={(e) => setMovAmount(e.target.value)} required />
-              <Input label={t('cash.reason')} value={movReason} onChange={(e) => setMovReason(e.target.value)} required />
-              <Button type="submit" className="md:col-span-2" loading={registerMov.isPending}>
-                {t('cash.registerMovement')}
-              </Button>
-            </form>
-
-            <PermissionGate permission={PERMISSIONS.cashSessionClose}>
-              <form
-                className="space-y-3 rounded-xl border border-border bg-white p-4"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  closeSession.mutate();
-                }}
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className={`rounded-lg px-4 py-2 text-sm font-medium ${tab === 'sell' ? 'bg-brand-navy text-white' : 'border border-border bg-white'}`}
+                onClick={() => setTab('sell')}
               >
-                <Input label={t('cash.countedCash')} type="number" step="0.01" value={counted} onChange={(e) => setCounted(e.target.value)} required />
-                <Button type="submit" variant="secondary" loading={closeSession.isPending}>
-                  {t('cash.close')}
-                </Button>
-              </form>
-            </PermissionGate>
+                {t('cash.tabSell')}
+              </button>
+              <button
+                type="button"
+                className={`rounded-lg px-4 py-2 text-sm font-medium ${tab === 'treasury' ? 'bg-brand-navy text-white' : 'border border-border bg-white'}`}
+                onClick={() => setTab('treasury')}
+              >
+                {t('cash.tabTreasury')}
+              </button>
+            </div>
+
+            {tab === 'sell' ? (
+              <PermissionGate permission={PERMISSIONS.salesPos}>
+                <PosTerminal showHeader compact />
+              </PermissionGate>
+            ) : (
+              <>
+                <section className="rounded-xl border border-border bg-white p-4">
+                  <h2 className="font-semibold text-brand-navy">{t('cash.movements')}</h2>
+                  <ul className="mt-2 divide-y text-sm">
+                    {(sessionQuery.data?.moves ?? []).map((m) => (
+                      <li key={m.id} className="flex justify-between py-2">
+                        <span>
+                          {m.movement_kind} {m.reason ? `· ${m.reason}` : ''}
+                        </span>
+                        <span className="font-mono">{Number(m.amount)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+
+                <form
+                  className="grid gap-3 rounded-xl border border-border bg-white p-4 md:grid-cols-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    registerMov.mutate();
+                  }}
+                >
+                  <label className="text-sm md:col-span-2">
+                    {t('cash.movementKind')}
+                    <select
+                      className="mt-1 w-full rounded-lg border border-border px-3 py-2"
+                      value={movKind}
+                      onChange={(e) => setMovKind(e.target.value as 'deposit' | 'withdrawal')}
+                    >
+                      <option value="deposit">{t('cash.deposit')}</option>
+                      <option value="withdrawal">{t('cash.withdrawal')}</option>
+                    </select>
+                  </label>
+                  <Input label={t('cash.amount')} type="number" step="0.01" value={movAmount} onChange={(e) => setMovAmount(e.target.value)} required />
+                  <Input label={t('cash.reason')} value={movReason} onChange={(e) => setMovReason(e.target.value)} required />
+                  <Button type="submit" className="md:col-span-2" loading={registerMov.isPending}>
+                    {t('cash.registerMovement')}
+                  </Button>
+                </form>
+
+                <PermissionGate permission={PERMISSIONS.cashSessionClose}>
+                  <form
+                    className="space-y-3 rounded-xl border border-border bg-white p-4"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      closeSession.mutate();
+                    }}
+                  >
+                    <Input label={t('cash.countedCash')} type="number" step="0.01" value={counted} onChange={(e) => setCounted(e.target.value)} required />
+                    <Button type="submit" variant="secondary" loading={closeSession.isPending}>
+                      {t('cash.close')}
+                    </Button>
+                  </form>
+                </PermissionGate>
+              </>
+            )}
           </>
         )}
       </div>
