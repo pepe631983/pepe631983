@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "default": "tci-auto-zone",
+    "staging": "tci-auto-zone"
+  }
+}

@@ -30,6 +30,9 @@
     "test:ui-staging-browser": "bash -c 'set -a; source scripts/load-staging-ui-credentials.sh 2>/dev/null || true; set +a; cd frontend && npx playwright test -c playwright.staging.config.ts'",
     "db:check:staging-secret": "bash scripts/load-staging-env.sh",
     "export:company": "bash -c 'set -a; source scripts/load-staging-ui-credentials.sh 2>/dev/null || true; set +a; node scripts/export-company-snapshot.mjs'",
+    "verify:frontend-staging-bundle": "bash scripts/verify-frontend-build-secrets.sh",
+    "deploy:hosting-staging": "bash -c 'npm run env:frontend-staging && npm run build -w frontend && npm run verify:frontend-staging-bundle && npx -y firebase-tools@latest deploy --only hosting --project tci-auto-zone'",
+    "auth:configure-staging-hosting": "bash scripts/configure-staging-supabase-auth-urls.sh https://tci-auto-zone.web.app",
     "desktop:dev": "npm run dev -w frontend & npm run start:dev -w tci-auto-zone-desktop",
     "desktop:start": "npm run start -w tci-auto-zone-desktop",
     "desktop:pack": "npm run build -w frontend && npm run pack -w tci-auto-zone-desktop"

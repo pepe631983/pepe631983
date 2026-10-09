@@ -1,23 +1,41 @@
-# Hosting HTTPS de pruebas (solo staging)
+# Hosting HTTPS de pruebas (Firebase — solo staging)
 
-Build local:
+## Proyecto Firebase
+
+- **Project ID:** `tci-auto-zone`
+- **URLs esperadas:** `https://tci-auto-zone.web.app` y `https://tci-auto-zone.firebaseapp.com`
+
+## Build (solo Supabase staging)
 
 ```bash
-npm run env:frontend-staging
+npm run env:frontend-staging   # VITE_SUPABASE_URL + anon key (dcfqaubuehnkniqcfvyg)
 npm run build -w frontend
+bash scripts/verify-frontend-build-secrets.sh
 ```
 
-Despliegue Firebase Hosting (requiere **un dato**: ID de proyecto Firebase con Hosting activo):
+El bundle **no** debe incluir `STAGING_DATABASE_URL`, `service_role` ni URLs `postgres://`.
+
+## Autenticación Firebase (oficial)
+
+1. En Cursor, cuando el agente invoque `firebase login`, abra la URL que muestre.
+2. Verifique que el **Session ID** del navegador coincide con el del agente (anti-phishing).
+3. Tras iniciar sesión con su cuenta Google, copie el **código de autorización** y envíelo al agente (no envíe contraseñas ni tokens CI por chat).
+
+Alternativa CI (GitHub Actions, no chat): `firebase login:ci` y guarde el token como secreto `FIREBASE_TOKEN`.
+
+## Deploy
 
 ```bash
-npx firebase-tools deploy --only hosting --project YOUR_FIREBASE_PROJECT_ID
+npx -y firebase-tools@latest deploy --only hosting --project tci-auto-zone
 ```
 
-Variables en el build (ya en `.env.staging` / `write-frontend-staging-env.sh`):
+## Supabase Auth (orígenes staging)
 
-- `VITE_SUPABASE_URL=https://dcfqaubuehnkniqcfvyg.supabase.co`
-- `VITE_SUPABASE_ANON_KEY` (clave **anon** pública, nunca service role)
+Tras el primer deploy, configure redirects (Dashboard → Authentication → URL configuration **o** script):
 
-En Supabase Dashboard → Authentication → URL configuration, agregue el dominio `https://YOUR_FIREBASE_PROJECT_ID.web.app`.
+```bash
+export SUPABASE_ACCESS_TOKEN=...   # token personal Supabase, no service role
+bash scripts/configure-staging-supabase-auth-urls.sh https://tci-auto-zone.web.app
+```
 
-**URL estable:** se obtiene tras el primer deploy (`https://<project>.web.app`). Este repo no incluye credenciales de deploy; el cliente debe ejecutar deploy con su cuenta o proporcionar token CI de solo hosting.
+Incluye localhost para desarrollo local. **No** apunte este frontend a producción.
