@@ -13,7 +13,7 @@ Fecha de ejecución en agente cloud: 2026-10-09.
 
 ## Integración SQL (motor comercial)
 
-Entorno del agente: **127.0.0.1:54322** no alcanzable (sin Supabase local); **`STAGING_DATABASE_URL` no configurada**.
+Entorno del agente (run `bc-d29d60e4-c5d3-40bc-85bb-945b550e21a4`, 2026-10-09): **`STAGING_DATABASE_URL` no presente en el proceso** (`npm run db:check:staging-secret` → exit 2). Environment ID `a53259a6-bcfb-11f1-977f-f6b8f2fcf9b2` (Personal). Validación staging **no ejecutada**.
 
 | Prueba SQL | Estado |
 |------------|--------|
