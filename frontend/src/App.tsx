@@ -21,6 +21,16 @@ import { GoodsReceiptPage } from '@/pages/GoodsReceiptPage';
 import { SupplierInvoicePage } from '@/pages/SupplierInvoicePage';
 import { CustomersPage } from '@/pages/CustomersPage';
 import { CustomerPaymentsPage } from '@/pages/CustomerPaymentsPage';
+import { CashPage } from '@/pages/CashPage';
+import { SalesReturnsPage } from '@/pages/SalesReturnsPage';
+import { TaxRatesPage } from '@/pages/TaxRatesPage';
+import { AccountingPeriodsPage } from '@/pages/AccountingPeriodsPage';
+import { QuotesPage } from '@/pages/QuotesPage';
+import { PublicQuotePage } from '@/pages/PublicQuotePage';
+import { InventoryConsultPage } from '@/pages/InventoryConsultPage';
+import { CustomerDetailPage } from '@/pages/CustomerDetailPage';
+import { JoinCompanyPage } from '@/pages/JoinCompanyPage';
+import { DataExportPage } from '@/pages/DataExportPage';
 
 const queryClient = new QueryClient();
 
@@ -49,6 +59,8 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/registro" element={<RegisterPage />} />
             <Route path="/registro-empresa" element={<CompanySetupPage />} />
+            <Route path="/c/:token" element={<PublicQuotePage />} />
+            <Route path="/unirse/:token" element={<JoinCompanyPage />} />
             <Route
               element={
                 <Protected>
@@ -75,8 +87,16 @@ export default function App() {
               <Route path="compras/proveedores" element={<SuppliersPage />} />
               <Route path="compras/recepciones" element={<GoodsReceiptPage />} />
               <Route path="compras/facturas-proveedor" element={<SupplierInvoicePage />} />
+              <Route path="ventas/cotizaciones" element={<QuotesPage />} />
               <Route path="ventas/clientes" element={<CustomersPage />} />
+              <Route path="ventas/clientes/:customerId" element={<CustomerDetailPage />} />
+              <Route path="configuracion/exportacion" element={<DataExportPage />} />
+              <Route path="inventario/consulta" element={<InventoryConsultPage />} />
               <Route path="ventas/cobros" element={<CustomerPaymentsPage />} />
+              <Route path="ventas/devoluciones" element={<SalesReturnsPage />} />
+              <Route path="tesoreria/caja" element={<CashPage />} />
+              <Route path="configuracion/impuestos" element={<TaxRatesPage />} />
+              <Route path="contabilidad/periodos" element={<AccountingPeriodsPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

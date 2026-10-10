@@ -20,13 +20,20 @@ export function Layout() {
     { to: '/usuarios', label: t('nav.users'), permission: PERMISSIONS.usersManage },
     { to: '/contabilidad/plan', label: t('nav.chart'), permission: PERMISSIONS.accountingJournalView },
     { to: '/contabilidad/conciliacion', label: t('nav.reconciliation'), permission: PERMISSIONS.reportsFinancial },
+    { to: '/contabilidad/periodos', label: t('nav.periods'), permission: PERMISSIONS.accountingPeriodClose },
+    { to: '/tesoreria/caja', label: t('nav.cash'), permission: PERMISSIONS.cashSessionOpen },
     { to: '/impresion', label: t('nav.printing'), permission: PERMISSIONS.printExecute },
     { to: '/pos', label: t('nav.pos'), permission: PERMISSIONS.salesPos },
+    { to: '/ventas/cotizaciones', label: 'Cotizaciones', permission: PERMISSIONS.salesQuoteManage },
+    { to: '/inventario/consulta', label: 'Inventario', permission: PERMISSIONS.inventoryConsult },
     { to: '/compras/proveedores', label: t('nav.suppliers'), permission: PERMISSIONS.purchaseCreate },
     { to: '/compras/recepciones', label: t('nav.receipts'), permission: PERMISSIONS.purchasePost },
     { to: '/compras/facturas-proveedor', label: t('nav.supplierInvoices'), permission: PERMISSIONS.purchasePost },
     { to: '/ventas/clientes', label: t('nav.customers'), permission: PERMISSIONS.salesConfirm },
+    { to: '/configuracion/exportacion', label: 'Exportación', permission: PERMISSIONS.dataExport },
     { to: '/ventas/cobros', label: t('nav.collections'), permission: PERMISSIONS.paymentCollect },
+    { to: '/ventas/devoluciones', label: t('nav.returns'), permission: PERMISSIONS.returnsProcess },
+    { to: '/configuracion/impuestos', label: t('nav.taxes'), permission: PERMISSIONS.companySettingsEdit },
   ];
 
   return (

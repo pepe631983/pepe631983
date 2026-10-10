@@ -16,6 +16,10 @@
     "supplierInvoices": "Facturas proveedor",
     "customers": "Clientes",
     "collections": "Cobros",
+    "returns": "Devoluciones",
+    "cash": "Caja",
+    "taxes": "Impuestos",
+    "periods": "Períodos contables",
     "signOut": "Cerrar sesión"
   },
   "auth": {
@@ -239,7 +243,67 @@
     "selectInvoice": "Seleccione factura…",
     "amount": "Monto",
     "submit": "Registrar cobro",
-    "saved": "Cobro registrado."
+    "saved": "Cobro registrado.",
+    "noCashSession": "Sin sesión de caja abierta: el cobro contabiliza en caja GL pero no aparecerá en arqueo de caja hasta abrir sesión."
+  },
+  "cash": {
+    "title": "Caja",
+    "subtitle": "Mostrador con repuestos, carrito y medios de pago; arqueo, movimientos y cierre en la pestaña Tesorería.",
+    "tabSell": "Venta en mostrador",
+    "tabTreasury": "Arqueo y movimientos",
+    "openingFloat": "Fondo inicial (USD)",
+    "open": "Abrir caja",
+    "opened": "Sesión de caja abierta.",
+    "statusOpen": "Sesión abierta",
+    "expected": "Efectivo esperado",
+    "openedAt": "Apertura:",
+    "movements": "Movimientos",
+    "movementKind": "Tipo",
+    "deposit": "Entrada",
+    "withdrawal": "Salida",
+    "amount": "Monto",
+    "reason": "Motivo",
+    "defaultReason": "Movimiento manual",
+    "registerMovement": "Registrar movimiento",
+    "movementSaved": "Movimiento registrado.",
+    "countedCash": "Efectivo contado al cierre",
+    "close": "Cerrar caja",
+    "closed": "Caja cerrada. Diferencia contabilizada: {{diff}} USD."
+  },
+  "returns": {
+    "title": "Devoluciones",
+    "subtitle": "Parcial o total sobre factura confirmada; respeta cantidades ya devueltas.",
+    "invoice": "Factura original",
+    "selectInvoice": "Seleccione…",
+    "refundKind": "Forma de reembolso",
+    "refundCash": "Efectivo (venta contado)",
+    "refundCredit": "Saldo a favor (requiere cliente)",
+    "max": "máx. {{n}}",
+    "submit": "Confirmar devolución",
+    "confirmed": "Devolución registrada.",
+    "noLines": "Indique cantidades a devolver.",
+    "needCashSession": "Abra caja para reembolsos en efectivo.",
+    "creditAutoSplit": "Venta a crédito: la devolución reduce CxC hasta el saldo pendiente; el excedente va a saldo a favor (sin efectivo)."
+  },
+  "taxRates": {
+    "title": "Impuestos configurables",
+    "subtitle": "Defina tasas reales de su negocio; el sistema guarda la tasa aplicada en cada documento.",
+    "empty": "Sin tasas. Agregue la suya (no se inventan valores por defecto).",
+    "code": "Código",
+    "name": "Nombre",
+    "rate": "Porcentaje",
+    "add": "Agregar tasa",
+    "saved": "Tasa guardada."
+  },
+  "periods": {
+    "title": "Períodos contables",
+    "subtitle": "Cierre de períodos; operaciones en fechas cerradas son rechazadas. Reversiones auditadas vía permiso document.reverse.",
+    "close": "Cerrar período",
+    "closed": "Período cerrado."
+  },
+  "staging": {
+    "missingEnv": "Frontend sin VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY. STAGING_DATABASE_URL solo aplica a herramientas CLI, no al navegador.",
+    "connectedHost": "Proyecto Supabase (navegador)"
   },
   "inventory": {
     "title": "Alta de producto y existencia",
@@ -260,13 +324,27 @@
     "stock": "Existencia",
     "total": "Total",
     "paymentKind": "Forma de pago",
-    "cash": "Contado",
-    "credit": "Crédito",
+    "cash": "Efectivo (contado)",
+    "card": "Tarjeta externa",
+    "check": "Cheque",
+    "transfer": "Transferencia",
+    "credit": "Crédito cliente",
+    "search": "Buscar repuesto",
+    "emptyCart": "Carrito vacío — agregue mercancía.",
+    "reference": "Referencia (lote, banco, Nº cheque…)",
+    "paidCardNote": "Venta contado; liquidación de tarjeta en conciliación.",
+    "paidCheckNote": "Venta contado; cheque registrado en referencia.",
+    "paidTransferNote": "Venta contado; verifique transferencia en banco.",
     "confirm": "Confirmar venta",
     "confirmed": "Venta confirmada.",
     "printFailedSaleSaved": "Venta guardada. La impresión falló; recupere desde Reimprimir COPIA o PDF en Impresión.",
     "printQueueFailed": "No se pudo cargar la factura para imprimir.",
     "reprintCopy": "Reimprimir COPIA (no duplica venta)",
-    "reprintFailed": "No se pudo registrar la reimpresión."
+    "reprintFailed": "No se pudo registrar la reimpresión.",
+    "taxRate": "Impuesto (opcional)",
+    "noTax": "Sin impuesto",
+    "net": "Neto",
+    "tax": "Impuesto",
+    "noCashSession": "Sin caja abierta: la venta contado no se vinculará al arqueo de caja."
   }
 }

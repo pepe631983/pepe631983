@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyBrand } from '@/hooks/useCompanyBrand';
+import { StagingConnectionHint } from '@/components/StagingConnectionHint';
 import { supabase } from '@/lib/supabase';
 
 export function DashboardPage() {
@@ -46,6 +47,8 @@ export function DashboardPage() {
           </p>
         ) : null}
       </header>
+
+      <StagingConnectionHint />
 
       <section className="rounded-xl border border-border bg-white p-4">
         <h2 className="font-medium text-brand-navy">{t('dashboard.moduleStatus')}</h2>
