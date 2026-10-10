@@ -8,6 +8,10 @@ frontend/.env.local
 frontend/test-results/
 frontend/playwright-report/
 .staging-ui-test.credentials
+docs/ui-e2e-screenshots/
+docs/export-snapshot-*.json
+docs/ui-e2e-staging-report.json
 supabase/.temp/
+.firebase/
 .DS_Store
 *.log
