@@ -134,7 +134,10 @@ export function WaveMark() {
   );
 }
 
-export function ProductArt({ id }: { id: string }) {
+const PHOTO = /^data:image\/(jpeg|png|webp);base64,/i;
+
+export function ProductArt({ id, image }: { id: string; image?: string }) {
+  if (image && PHOTO.test(image)) return <img className="art photo" src={image} alt="" />;
   const scene = scenes[id] ?? { shape: "plate" as const, liquid: "#e7e0d2", accent: "#c4471a" };
   return (
     <svg className="art" viewBox="0 0 80 64" aria-hidden="true">

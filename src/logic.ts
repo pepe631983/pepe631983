@@ -44,19 +44,22 @@ export function parseMoney(input: string): number | null {
   return cents;
 }
 
+export function buttonCents(product: Product): number {
+  return product.priceCents ?? Math.round(product.price * 100);
+}
+
 export function unitCents(product: Product, vehicle: VehicleKind): number {
-  if (!product.scales) return product.price * 100;
-  return Math.round(product.price * VEHICLE_PERCENT[vehicle]);
+  const base = buttonCents(product);
+  if (!product.scales) return base;
+  return Math.round((base * VEHICLE_PERCENT[vehicle]) / 100);
 }
 
-export function productById(id: string): Product | undefined {
-  return catalog.find((item) => item.id === id);
+export function productById(id: string, buttons: Product[] = catalog): Product | undefined {
+  return buttons.find((item) => item.id === id);
 }
 
-export function visibleProducts(service: ServiceId, vehicle: VehicleKind): Product[] {
-  return catalog.filter(
-    (item) => item.service === service && (!item.kinds || item.kinds.includes(vehicle)),
-  );
+export function visibleProducts(service: ServiceId, vehicle: VehicleKind, buttons: Product[] = catalog): Product[] {
+  return buttons.filter((item) => item.service === service && (!item.kinds || item.kinds.includes(vehicle)));
 }
 
 export function vehicleNote(): string {
@@ -68,12 +71,12 @@ export function vehicleNote(): string {
 }
 
 function lineKey(product: Product, vehicle: VehicleKind, cents: number): string {
-  const size = product.service === "lavado" && product.scales ? vehicle : "-";
+  const size = product.scales ? vehicle : "-";
   return `${product.id}:${size}:${cents}`;
 }
 
 function lineName(product: Product, vehicle: VehicleKind): string {
-  if (product.service === "lavado" && product.scales) return `${product.name} · ${VEHICLE_LABEL[vehicle]}`;
+  if (product.scales) return `${product.name} · ${VEHICLE_LABEL[vehicle]}`;
   return product.name;
 }
 
@@ -108,13 +111,12 @@ export function lineCents(line: CartLine): number {
   return line.unitCents * line.qty;
 }
 
-export function sumLines(lines: CartLine[]): { byService: ServiceTotals; totalCents: number } {
-  const byService = emptyTotals();
-  for (const line of lines) byService[line.service] += lineCents(line);
-  return {
-    byService,
-    totalCents: byService.bar + byService.restaurante + byService.lavado,
-  };
+export function sumLines(lines: CartLine[], serviceIds: string[] = []): { byService: ServiceTotals; totalCents: number } {
+  const byService: ServiceTotals = {};
+  for (const id of serviceIds) byService[id] = 0;
+  for (const line of lines) byService[line.service] = (byService[line.service] ?? 0) + lineCents(line);
+  const totalCents = Object.values(byService).reduce((sum, value) => sum + value, 0);
+  return { byService, totalCents };
 }
 
 export function todayISO(now = new Date()): string {
@@ -169,16 +171,20 @@ export function ticketNumber(n: number): string {
   return String(Math.max(1, Math.trunc(n))).padStart(4, "0");
 }
 
+const DEFAULT_SERVICES = SERVICES.map((id) => ({ id, name: SERVICE_LABEL[id] }));
+
 export function closeSale(
   lines: CartLine[],
   pay: Pay,
   tenderedCents: number | null,
   at: string,
   sequence: number,
+  services = DEFAULT_SERVICES,
 ): Sale | { error: string } {
   if (lines.length === 0) return { error: "La cuenta está vacía." };
-  const { byService, totalCents } = sumLines(lines);
+  const { byService, totalCents } = sumLines(lines, services.map((service) => service.id));
   if (totalCents <= 0) return { error: "La cuenta está vacía." };
+  const snapshot = services.map((service) => ({ ...service }));
   if (pay === "efectivo") {
     if (tenderedCents === null) return { error: "Escribe el efectivo recibido." };
     if (tenderedCents < totalCents) return { error: "El efectivo no cubre el total." };
@@ -186,49 +192,50 @@ export function closeSale(
       number: ticketNumber(sequence),
       at,
       lines: lines.map((line) => ({ ...line })),
+      services: snapshot,
       byService: { ...byService },
       totalCents,
       pay,
       tenderedCents,
       changeCents: tenderedCents - totalCents,
-      voided: false,
     };
   }
   return {
     number: ticketNumber(sequence),
     at,
     lines: lines.map((line) => ({ ...line })),
+    services: snapshot,
     byService: { ...byService },
     totalCents,
     pay,
     tenderedCents: totalCents,
     changeCents: 0,
-    voided: false,
   };
 }
 
 export function report(sales: Sale[], day: string): DayReport {
-  const byService = emptyTotals();
+  const byService: ServiceTotals = {};
+  const services: { id: string; name: string }[] = [];
   let totalCents = 0;
   let cashCents = 0;
   let cardCents = 0;
   let tickets = 0;
-  let voids = 0;
   for (const sale of sales) {
     if (dayKey(sale.at) !== day) continue;
-    if (sale.voided) {
-      voids += 1;
-      continue;
-    }
     tickets += 1;
-    byService.bar += sale.byService.bar;
-    byService.restaurante += sale.byService.restaurante;
-    byService.lavado += sale.byService.lavado;
+    for (const service of sale.services) {
+      if (!services.some((item) => item.id === service.id)) services.push({ ...service });
+      else {
+        const found = services.find((item) => item.id === service.id);
+        if (found) found.name = service.name;
+      }
+      byService[service.id] = (byService[service.id] ?? 0) + (sale.byService[service.id] ?? 0);
+    }
     totalCents += sale.totalCents;
     if (sale.pay === "efectivo") cashCents += sale.totalCents;
     else cardCents += sale.totalCents;
   }
-  return { day, tickets, voids, byService, totalCents, cashCents, cardCents };
+  return { day, tickets, services, byService, totalCents, cashCents, cardCents };
 }
 
 function center(text: string): string {
@@ -256,17 +263,17 @@ function itemRows(line: CartLine): string[] {
 }
 
 export function thermalText(sale: Sale): string {
+  const services = sale.services.length ? sale.services : DEFAULT_SERVICES;
   const out = [center(HOUSE.name.toUpperCase()), center(HOUSE.street), center(HOUSE.place), rule()];
-  if (sale.voided) out.push(center("ANULADO"));
   out.push(row("Ticket", sale.number), row("Fecha", formatWhen(sale.at)), rule());
-  for (const service of SERVICES) {
-    const group = sale.lines.filter((line) => line.service === service);
+  for (const service of services) {
+    const group = sale.lines.filter((line) => line.service === service.id);
     if (group.length === 0) continue;
-    out.push(SERVICE_LABEL[service].toUpperCase());
+    out.push(service.name.toUpperCase());
     for (const line of group) out.push(...itemRows(line));
   }
   out.push(rule());
-  for (const service of SERVICES) out.push(row(SERVICE_LABEL[service], moneyExact(sale.byService[service])));
+  for (const service of services) out.push(row(service.name, moneyExact(sale.byService[service.id] ?? 0)));
   out.push(rule(), row("TOTAL", moneyExact(sale.totalCents)));
   if (sale.pay === "efectivo") {
     out.push(row("Efectivo", moneyExact(sale.tenderedCents)), row("Cambio", moneyExact(sale.changeCents)));
@@ -284,10 +291,11 @@ export function closeText(dayReport: DayReport): string {
     center(formatDayLabel(dayReport.day)),
     rule(),
     row("Tickets", String(dayReport.tickets)),
-    row("Anulados", String(dayReport.voids)),
     rule(),
   ];
-  for (const service of SERVICES) out.push(row(SERVICE_LABEL[service], moneyExact(dayReport.byService[service])));
+  for (const service of dayReport.services) {
+    out.push(row(service.name, moneyExact(dayReport.byService[service.id] ?? 0)));
+  }
   out.push(
     rule(),
     row("TOTAL", moneyExact(dayReport.totalCents)),
@@ -299,7 +307,7 @@ export function closeText(dayReport: DayReport): string {
   return out.join("\n");
 }
 
-const SERVICES_SET = new Set<ServiceId>(SERVICES);
+const SERVICE_ID = /^[a-z0-9][a-z0-9-]{0,39}$/;
 const PAYS = new Set<Pay>(["efectivo", "tarjeta"]);
 
 export function normalizeLines(input: unknown): CartLine[] {
@@ -309,7 +317,7 @@ export function normalizeLines(input: unknown): CartLine[] {
     if (!item || typeof item !== "object") continue;
     const raw = item as Partial<CartLine>;
     if (typeof raw.key !== "string" || typeof raw.productId !== "string" || typeof raw.name !== "string") continue;
-    if (!SERVICES_SET.has(raw.service as ServiceId)) continue;
+    if (typeof raw.service !== "string" || !SERVICE_ID.test(raw.service)) continue;
     const qty = Number(raw.qty);
     const unitCents = Number(raw.unitCents);
     if (!Number.isInteger(qty) || qty < 1 || qty > 99) continue;
@@ -317,13 +325,33 @@ export function normalizeLines(input: unknown): CartLine[] {
     lines.push({
       key: raw.key.slice(0, 80),
       productId: raw.productId.slice(0, 40),
-      service: raw.service as ServiceId,
+      service: raw.service,
       name: raw.name.slice(0, 80),
       qty,
       unitCents,
     });
   }
   return lines;
+}
+
+function normalizeServices(input: unknown, lines: CartLine[]): { id: string; name: string }[] {
+  const services: { id: string; name: string }[] = [];
+  if (Array.isArray(input)) {
+    for (const item of input.slice(0, 40)) {
+      if (!item || typeof item !== "object") continue;
+      const raw = item as { id?: unknown; name?: unknown };
+      if (typeof raw.id !== "string" || !SERVICE_ID.test(raw.id)) continue;
+      if (typeof raw.name !== "string" || raw.name.trim() === "") continue;
+      if (services.some((service) => service.id === raw.id)) continue;
+      services.push({ id: raw.id, name: raw.name.trim().slice(0, 40) });
+    }
+  }
+  if (services.length > 0) return services;
+  for (const line of lines) {
+    if (services.some((service) => service.id === line.service)) continue;
+    services.push({ id: line.service, name: SERVICE_LABEL[line.service as keyof typeof SERVICE_LABEL] ?? line.service });
+  }
+  return services;
 }
 
 export function normalizeSales(input: unknown): Sale[] {
@@ -335,15 +363,17 @@ export function normalizeSales(input: unknown): Sale[] {
     if (typeof raw.number !== "string" || !/^\d{4,6}$/.test(raw.number)) continue;
     if (typeof raw.at !== "string" || Number.isNaN(Date.parse(raw.at))) continue;
     if (!PAYS.has(raw.pay as Pay)) continue;
+    if ((raw as { voided?: boolean }).voided === true) continue;
     const lines = normalizeLines(raw.lines);
     if (lines.length === 0) continue;
-    const summed = sumLines(lines);
-    const byService = raw.byService && typeof raw.byService === "object" ? raw.byService : summed.byService;
-    const read = (service: ServiceId) => {
-      const value = Number(byService[service]);
-      return Number.isInteger(value) ? value : summed.byService[service];
-    };
-    const stored: ServiceTotals = { bar: read("bar"), restaurante: read("restaurante"), lavado: read("lavado") };
+    const services = normalizeServices(raw.services, lines);
+    const summed = sumLines(lines, services.map((service) => service.id));
+    const byService: ServiceTotals = {};
+    const rawTotals = raw.byService && typeof raw.byService === "object" ? raw.byService : {};
+    for (const service of services) {
+      const value = Number(rawTotals[service.id]);
+      byService[service.id] = Number.isInteger(value) ? value : (summed.byService[service.id] ?? 0);
+    }
     const totalCents = Number.isInteger(raw.totalCents) ? Number(raw.totalCents) : summed.totalCents;
     const tenderedCents = Number.isInteger(raw.tenderedCents) ? Number(raw.tenderedCents) : totalCents;
     const changeCents = Number.isInteger(raw.changeCents) ? Number(raw.changeCents) : 0;
@@ -352,12 +382,12 @@ export function normalizeSales(input: unknown): Sale[] {
       number: raw.number,
       at: raw.at,
       lines,
-      byService: stored,
+      services,
+      byService,
       totalCents,
       pay: raw.pay as Pay,
       tenderedCents,
       changeCents,
-      voided: raw.voided === true,
     });
   }
   return sales;

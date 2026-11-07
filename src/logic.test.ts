@@ -6,6 +6,7 @@ import {
   closeText,
   cashSuggestions,
   moneyExact,
+  normalizeSales,
   parseMoney,
   report,
   sumLines,
@@ -95,20 +96,21 @@ describe("caja", () => {
     expect(text.indexOf("TOTAL")).toBeLessThan(text.indexOf("Efectivo"));
   });
 
-  it("lleva el libro del día sin contar lo anulado", () => {
+  it("lleva el libro del día y deja fuera otro día", () => {
     const first = closeSale(ring(), "efectivo", 10000, "2026-11-07T15:00:00.000Z", 1);
     const second = closeSale(ring(), "tarjeta", null, "2026-11-07T18:00:00.000Z", 2);
     const otherDay = closeSale(ring(), "tarjeta", null, "2026-11-08T15:00:00.000Z", 3);
     if ("error" in first || "error" in second || "error" in otherDay) throw new Error("cobro");
-    const books = report([{ ...first, voided: true }, second, otherDay], "2026-11-07");
+    const books = report([second, otherDay], "2026-11-07");
     expect(books.tickets).toBe(1);
-    expect(books.voids).toBe(1);
     expect(books.byService).toEqual(second.byService);
     expect(books.totalCents).toBe(second.totalCents);
     expect(books.cardCents).toBe(second.totalCents);
     expect(books.cashCents).toBe(0);
+    expect(books.services.map((service) => service.id)).toEqual(["bar", "restaurante", "lavado"]);
     expect(books.byService.bar + books.byService.restaurante + books.byService.lavado).toBe(books.totalCents);
     expect(closeText(books)).toContain("TOTAL");
     expect(closeText(books)).toContain("$70.48");
+    expect(normalizeSales([{ ...first, voided: true }])).toEqual([]);
   });
 });

@@ -4,8 +4,16 @@ import { useStore } from "../store";
 import { PrintButton, Tape } from "../tape";
 
 export function ReceiptPage() {
-  const { sales, receiptNumber } = useStore();
+  const { sales, receiptNumber, ready } = useStore();
   const sale = sales.find((item) => item.number === receiptNumber);
+
+  if (!ready) {
+    return (
+      <div className="print-page">
+        <p className="empty">Buscando el ticket…</p>
+      </div>
+    );
+  }
 
   if (!sale) {
     return (

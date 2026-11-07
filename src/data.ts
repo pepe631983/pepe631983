@@ -69,6 +69,10 @@ export const catalog: Product[] = [
   { id: "ozono", service: "lavado", category: "Extras", name: "Ozono", price: 12, scales: false },
 ];
 
+export function tone(id: string): string {
+  return id === "bar" || id === "restaurante" || id === "lavado" ? id : "otro";
+}
+
 export function categoriesFor(service: ServiceId): string[] {
   const found = new Set(catalog.filter((item) => item.service === service).map((item) => item.category));
   return ["Todo", ...found];

@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { Admin } from "./pages/Admin";
 import { Books, ClosePage } from "./pages/Books";
 import { ReceiptPage } from "./pages/Receipt";
 import { Register } from "./pages/Register";
@@ -10,6 +11,7 @@ const TITLES: Record<Route, string> = {
   libros: "Contabilidad · Oleaje",
   recibo: "Ticket térmico · Oleaje",
   cierre: "Cierre · Oleaje",
+  admin: "Menú · Oleaje",
 };
 
 export function App() {
@@ -25,6 +27,7 @@ export function App() {
       {route === "libros" && <Books />}
       {route === "recibo" && <ReceiptPage />}
       {route === "cierre" && <ClosePage />}
+      {route === "admin" && <Admin />}
     </main>
   );
 }

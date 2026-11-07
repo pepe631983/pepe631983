@@ -1,19 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { ProductArt, WaveMark } from "../art";
-import { HOUSE, SERVICE_LABEL, SERVICES, VEHICLE_LABEL, VEHICLE_ORDER, categoriesFor } from "../data";
-import {
-  cashSuggestions,
-  dayKey,
-  lineCents,
-  moneyExact,
-  parseMoney,
-  productById,
-  unitCents,
-  vehicleNote,
-  visibleProducts,
-} from "../logic";
+import { HOUSE, VEHICLE_LABEL, VEHICLE_ORDER, tone } from "../data";
+import { cashSuggestions, dayKey, lineCents, moneyExact, parseMoney, productById, unitCents, vehicleNote, visibleProducts } from "../logic";
 import { useStore } from "../store";
-import type { Pay, ServiceId } from "../types";
+import type { Pay, Product, VehicleKind } from "../types";
 
 const KEYS = ["7", "8", "9", "4", "5", "6", "1", "2", "3", "0", ".", "⌫"] as const;
 
@@ -21,23 +11,43 @@ function fold(value: string): string {
   return value.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 }
 
+function categoriesOf(service: string, buttons: Product[], vehicle: VehicleKind): string[] {
+  const found = visibleProducts(service, vehicle, buttons).map((item) => item.category).filter(Boolean);
+  return ["Todo", ...new Set(found)];
+}
+
 export function Register() {
-  const { service, vehicle, lines, totals, sales, today, setService, setVehicle, add, setQty, clearTicket, charge } =
-    useStore();
-  const [categoryByService, setCategoryByService] = useState<Record<ServiceId, string>>({
-    bar: "Todo",
-    restaurante: "Todo",
-    lavado: "Todo",
-  });
+  const {
+    ready,
+    problem,
+    admin,
+    service,
+    services,
+    buttons,
+    vehicle,
+    lines,
+    totals,
+    sales,
+    today,
+    setService,
+    setVehicle,
+    add,
+    setQty,
+    clearTicket,
+    charge,
+    refresh,
+  } = useStore();
+  const [categoryByService, setCategoryByService] = useState<Record<string, string>>({});
   const [query, setQuery] = useState("");
   const [pay, setPay] = useState<Pay>("efectivo");
   const [cash, setCash] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [dockOpen, setDockOpen] = useState(false);
   const [bumped, setBumped] = useState<string | null>(null);
-  const category = categoryByService[service];
-  const categories = categoriesFor(service);
-  const catalog = visibleProducts(service, vehicle);
+  const [saving, setSaving] = useState(false);
+  const category = categoryByService[service] ?? "Todo";
+  const categories = categoriesOf(service, buttons, vehicle);
+  const catalog = visibleProducts(service, vehicle, buttons);
   const needle = fold(query.trim());
   const products = catalog.filter((item) => {
     const inCategory = category === "Todo" || item.category === category;
@@ -45,16 +55,17 @@ export function Register() {
   });
   const tendered = parseMoney(cash);
   const short = pay === "efectivo" && tendered !== null && tendered < totals.totalCents;
-  const canCharge =
-    totals.totalCents > 0 && (pay === "tarjeta" || (tendered !== null && tendered >= totals.totalCents));
+  const canCharge = totals.totalCents > 0 && (pay === "tarjeta" || (tendered !== null && tendered >= totals.totalCents));
   const ideas = cashSuggestions(totals.totalCents);
-  const quiet = SERVICES.filter((id) => totals.byService[id] === 0).map((id) => SERVICE_LABEL[id]);
+  const quiet = services.filter((item) => (totals.byService[item.id] ?? 0) === 0).map((item) => item.name);
   const itemCount = lines.reduce((sum, line) => sum + line.qty, 0);
+  const serviceName = services.find((item) => item.id === service)?.name ?? "este servicio";
+  const scales = buttons.some((item) => item.service === service && item.scales);
 
   const favorites = useMemo(() => {
     const counts = new Map<string, number>();
     for (const sale of sales) {
-      if (sale.voided || dayKey(sale.at) !== today) continue;
+      if (dayKey(sale.at) !== today) continue;
       for (const line of sale.lines) {
         if (line.service !== service) continue;
         counts.set(line.productId, (counts.get(line.productId) ?? 0) + line.qty);
@@ -64,11 +75,11 @@ export function Register() {
       .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
       .slice(0, 4)
       .flatMap(([id, count]) => {
-        const product = productById(id);
+        const product = productById(id, buttons);
         if (!product || !catalog.some((item) => item.id === id)) return [];
         return [{ product, count }];
       });
-  }, [sales, today, service, vehicle]);
+  }, [sales, today, service, buttons, catalog]);
 
   useEffect(() => {
     if (!bumped) return;
@@ -77,21 +88,22 @@ export function Register() {
   }, [bumped]);
 
   function cue(): string {
+    if (!ready) return "Abriendo la caja…";
+    if (problem) return problem;
+    if (services.length === 0) return "El admin no ha publicado el menú de hoy.";
     if (totals.totalCents === 0) {
-      return "Toca un vaso, un plato o un auto. Los tres servicios caben en la misma cuenta.";
+      return services.length === 1
+        ? `Toca un botón de ${services[0]?.name ?? "hoy"}.`
+        : "Toca un botón. Los servicios del día caben en la misma cuenta.";
     }
-    if (pay === "efectivo" && short && tendered !== null) {
-      return `Faltan ${moneyExact(totals.totalCents - tendered)} para cubrir la cuenta.`;
-    }
-    if (canCharge && pay === "efectivo" && tendered !== null) {
-      return `Listo para cobrar. El cambio es ${moneyExact(tendered - totals.totalCents)}.`;
-    }
+    if (pay === "efectivo" && short && tendered !== null) return `Faltan ${moneyExact(totals.totalCents - tendered)} para cubrir la cuenta.`;
+    if (canCharge && pay === "efectivo" && tendered !== null) return `Listo para cobrar. El cambio es ${moneyExact(tendered - totals.totalCents)}.`;
     if (canCharge && pay === "tarjeta") return "Tarjeta lista: se cobra el total exacto.";
     if (quiet.length > 0) {
       const plural = quiet.length > 1;
       return `${quiet.join(" y ")} ${plural ? "siguen" : "sigue"} en $0.00. Puedes ${plural ? "sumarlos" : "sumarlo"} o cobrar lo que ya está.`;
     }
-    return "Los tres servicios ya están en la cuenta. Elige el efectivo o la tarjeta.";
+    return "Los servicios del día ya están en la cuenta. Elige el efectivo o la tarjeta.";
   }
 
   function pushKey(key: string) {
@@ -115,8 +127,10 @@ export function Register() {
     setBumped(id);
   }
 
-  function takePayment() {
-    const result = charge(pay, pay === "efectivo" ? tendered : null);
+  async function takePayment() {
+    setSaving(true);
+    const result = await charge(pay, pay === "efectivo" ? tendered : null);
+    setSaving(false);
     if (!result.ok) setError(result.reason);
   }
 
@@ -125,30 +139,37 @@ export function Register() {
   }
 
   return (
-    <div className={`register service-${service}`}>
+    <div className={`register service-${tone(service)}`}>
       <header className="topbar">
         <a className="brand" href="#/">
           <WaveMark />
           <span>{HOUSE.name}</span>
         </a>
         <div className="services" role="tablist" aria-label="Servicio">
-          {SERVICES.map((id) => (
+          {services.map((item) => (
             <button
-              key={id}
+              key={item.id}
               type="button"
               role="tab"
-              aria-selected={service === id}
-              className={`service ${id}`}
-              onClick={() => setService(id)}
+              aria-selected={service === item.id}
+              className={`service ${tone(item.id)}`}
+              onClick={() => setService(item.id)}
             >
-              <span>{SERVICE_LABEL[id]}</span>
-              <strong>{moneyExact(totals.byService[id])}</strong>
+              <span>{item.name}</span>
+              <strong>{moneyExact(totals.byService[item.id] ?? 0)}</strong>
             </button>
           ))}
         </div>
-        <a className="books-link" href="#/libros">
-          Libros
-        </a>
+        <nav className="top-links">
+          {admin ? (
+            <a className="books-link" href="#/admin">
+              Menú
+            </a>
+          ) : null}
+          <a className="books-link" href="#/libros">
+            Libros
+          </a>
+        </nav>
       </header>
 
       <div className="workspace">
@@ -156,45 +177,47 @@ export function Register() {
           <p className="cue" aria-live="polite">
             {cue()}
           </p>
-          {service === "lavado" ? (
+          {problem ? (
+            <button type="button" className="btn btn-primary" onClick={() => refresh().catch(() => undefined)}>
+              Reintentar
+            </button>
+          ) : null}
+          {scales ? (
             <div className="vehicle" role="radiogroup" aria-label="Tamaño del vehículo">
               {VEHICLE_ORDER.map((kind) => (
                 <label key={kind} className={vehicle === kind ? "chip is-on" : "chip"}>
-                  <input
-                    type="radio"
-                    name="vehicle"
-                    checked={vehicle === kind}
-                    onChange={() => setVehicle(kind)}
-                  />
+                  <input type="radio" name="vehicle" checked={vehicle === kind} onChange={() => setVehicle(kind)} />
                   {VEHICLE_LABEL[kind]}
                 </label>
               ))}
               <p>{vehicleNote()}</p>
             </div>
           ) : null}
-          <div className="finder">
-            <label className="search">
-              <span className="sr">Buscar en {SERVICE_LABEL[service]}</span>
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={`Buscar en ${SERVICE_LABEL[service]}`}
-                enterKeyHint="search"
-              />
-            </label>
-            <div className="cats" role="group" aria-label="Categoría">
-              {categories.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  aria-pressed={item === category}
-                  onClick={() => setCategoryByService((current) => ({ ...current, [service]: item }))}
-                >
-                  {item}
-                </button>
-              ))}
+          {services.length > 0 ? (
+            <div className="finder">
+              <label className="search">
+                <span className="sr">Buscar en {serviceName}</span>
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder={`Buscar en ${serviceName}`}
+                  enterKeyHint="search"
+                />
+              </label>
+              <div className="cats" role="group" aria-label="Categoría">
+                {categories.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    aria-pressed={item === category}
+                    onClick={() => setCategoryByService((current) => ({ ...current, [service]: item }))}
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : null}
           {favorites.length > 0 && needle === "" && category === "Todo" ? (
             <div className="favorites">
               <p>Hoy se pide</p>
@@ -217,18 +240,19 @@ export function Register() {
                 <button
                   key={product.id}
                   type="button"
-                  className={bumped === product.id ? `tile ${product.service} is-bumped` : `tile ${product.service}`}
+                  className={bumped === product.id ? `tile ${tone(product.service)} is-bumped` : `tile ${tone(product.service)}`}
                   onClick={() => tapProduct(product.id)}
                 >
                   {qty > 0 ? <span className="badge">{qty}</span> : null}
-                  <ProductArt id={product.id} />
+                  <ProductArt id={product.id} image={product.image} />
                   <span className="tile-name">{product.name}</span>
                   <strong>{moneyExact(unitCents(product, vehicle))}</strong>
                 </button>
               );
             })}
           </div>
-          {products.length === 0 ? <p className="empty">Nada con ese nombre en {SERVICE_LABEL[service]}.</p> : null}
+          {ready && services.length === 0 ? <p className="empty">El admin no ha publicado el menú de hoy.</p> : null}
+          {services.length > 0 && products.length === 0 ? <p className="empty">Nada con ese nombre en {serviceName}.</p> : null}
         </section>
 
         <aside className={dockOpen ? "ticket is-open" : "ticket"} aria-label="Cuenta">
@@ -240,21 +264,16 @@ export function Register() {
             <button type="button" className="text-btn" onClick={clearTicket} disabled={lines.length === 0}>
               Vaciar
             </button>
-            <button
-              type="button"
-              className="dock-toggle"
-              aria-expanded={dockOpen}
-              onClick={() => setDockOpen((open) => !open)}
-            >
+            <button type="button" className="dock-toggle" aria-expanded={dockOpen} onClick={() => setDockOpen((open) => !open)}>
               <span>{dockOpen ? "Cerrar" : itemCount === 0 ? "Abrir cuenta" : `${itemCount} en la cuenta`}</span>
               <strong>{moneyExact(totals.totalCents)}</strong>
             </button>
           </div>
           <div className="peek">
-            {SERVICES.map((id) => (
-              <span key={id} className={id}>
-                {SERVICE_LABEL[id]}
-                <strong>{moneyExact(totals.byService[id])}</strong>
+            {services.map((item) => (
+              <span key={item.id} className={tone(item.id)}>
+                {item.name}
+                <strong>{moneyExact(totals.byService[item.id] ?? 0)}</strong>
               </span>
             ))}
           </div>
@@ -268,7 +287,7 @@ export function Register() {
             {lines.map((line) => (
               <div key={line.key} className="tline">
                 <div>
-                  <span className={`tag ${line.service}`}>{SERVICE_LABEL[line.service]}</span>
+                  <span className={`tag ${tone(line.service)}`}>{services.find((item) => item.id === line.service)?.name ?? line.service}</span>
                   <strong>{line.name}</strong>
                   <span className="unit">{moneyExact(line.unitCents)}</span>
                 </div>
@@ -286,10 +305,10 @@ export function Register() {
             ))}
           </div>
           <div className="account">
-            {SERVICES.map((id) => (
-              <div key={id} className="sum">
-                <span className={`tag ${id}`}>{SERVICE_LABEL[id]}</span>
-                <span>{moneyExact(totals.byService[id])}</span>
+            {services.map((item) => (
+              <div key={item.id} className="sum">
+                <span className={`tag ${tone(item.id)}`}>{item.name}</span>
+                <span>{moneyExact(totals.byService[item.id] ?? 0)}</span>
               </div>
             ))}
             <div className="grand">
@@ -346,7 +365,7 @@ export function Register() {
                 {error}
               </p>
             ) : null}
-            <button type="button" className="btn btn-primary charge" onClick={takePayment} disabled={!canCharge}>
+            <button type="button" className="btn btn-primary charge" onClick={takePayment} disabled={!canCharge || saving}>
               {totals.totalCents > 0 ? `Cobrar ${moneyExact(totals.totalCents)}` : "Cobrar"}
             </button>
           </div>
