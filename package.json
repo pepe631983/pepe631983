@@ -2,7 +2,7 @@
   "name": "oleaje",
   "private": true,
   "version": "1.0.0",
-  "description": "Oleaje: reservas de lavado, cocina y barra en un mismo patio.",
+  "description": "Caja Oleaje: punto de venta de bar, restaurante y car wash.",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5173",

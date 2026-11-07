@@ -1,71 +1,103 @@
-import { addons, menu, packages } from "./data";
-import type {
-  Addon,
-  Busy,
-  Clock,
-  Draft,
-  Quote,
-  QuoteLine,
-  Seat,
-  Status,
-  VehicleKind,
-  Visit,
-  Slot,
-} from "./types";
+import { HOUSE, SERVICE_LABEL, SERVICES, VEHICLE_LABEL, VEHICLE_PERCENT, catalog } from "./data";
+import type { CartLine, DayReport, Pay, Product, Sale, ServiceId, ServiceTotals, VehicleKind } from "./types";
 
 export const TIME_ZONE = "America/Grand_Turk";
-export const BAYS = 3;
-export const BAY_OPEN = 8 * 60;
-export const BAY_CLOSE = 18 * 60;
-export const KITCHEN_OPEN = 12 * 60;
-export const KITCHEN_LAST = 22 * 60 + 30;
-export const BAR_LAST = 23 * 60 + 30;
-export const DISCOUNT_PERCENT = 10;
-export const DISCOUNT_FOOD_CENTS = 1800;
-export const DISCOUNT_PACKAGES = new Set(["completo", "premium", "detalle"]);
+export const TAPE_WIDTH = 32;
 
-export const VEHICLE_PERCENT: Record<VehicleKind, number> = {
-  moto: 70,
-  sedan: 100,
-  suv: 118,
-  pickup: 128,
-};
+export function emptyTotals(): ServiceTotals {
+  return { bar: 0, restaurante: 0, lavado: 0 };
+}
 
-export const VEHICLE_LABEL: Record<VehicleKind, string> = {
-  moto: "Moto",
-  sedan: "Sedán",
-  suv: "SUV",
-  pickup: "Pickup",
-};
-
-export const VEHICLE_ORDER: VehicleKind[] = ["moto", "sedan", "suv", "pickup"];
-
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
-const CLOCK = /^\d{2}:\d{2}$/;
-const SEATS = new Set<Seat>(["patio", "barra", "salon", "llevar"]);
-const VEHICLES = new Set<VehicleKind>(["moto", "sedan", "suv", "pickup"]);
-const STATUSES = new Set<Status>(["confirmada", "en-bahia", "en-mesa", "lista", "cancelada"]);
-
-export function moneyCents(cents: number): string {
+export function moneyExact(cents: number): string {
   const negative = cents < 0;
   const abs = Math.abs(Math.trunc(cents));
   const dollars = Math.trunc(abs / 100);
   const rem = abs % 100;
   const grouped = dollars.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  const body = rem === 0 ? `$${grouped}` : `$${grouped}.${String(rem).padStart(2, "0")}`;
+  const body = `$${grouped}.${String(rem).padStart(2, "0")}`;
   return negative ? `−${body}` : body;
 }
 
-export function minutesToLabel(mins: number): string {
-  const normalized = ((mins % (24 * 60)) + 24 * 60) % (24 * 60);
-  const h = Math.floor(normalized / 60);
-  const m = normalized % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+export function parseMoney(input: string): number | null {
+  const cleaned = input.trim().replace(/\s/g, "").replace(",", ".");
+  if (!/^\d+(\.\d{0,2})?$/.test(cleaned)) return null;
+  const [dollars, fraction = ""] = cleaned.split(".");
+  const cents = Number(dollars) * 100 + Number((fraction + "00").slice(0, 2));
+  if (!Number.isSafeInteger(cents) || cents < 0 || cents > 100_000_00) return null;
+  return cents;
 }
 
-export function labelToMinutes(label: string): number {
-  const [h, m] = label.split(":").map(Number);
-  return h * 60 + m;
+export function unitCents(product: Product, vehicle: VehicleKind): number {
+  if (!product.scales) return product.price * 100;
+  return Math.round(product.price * VEHICLE_PERCENT[vehicle]);
+}
+
+export function productById(id: string): Product | undefined {
+  return catalog.find((item) => item.id === id);
+}
+
+export function visibleProducts(service: ServiceId, vehicle: VehicleKind): Product[] {
+  return catalog.filter(
+    (item) => item.service === service && (!item.kinds || item.kinds.includes(vehicle)),
+  );
+}
+
+export function vehicleNote(): string {
+  const signed = (percent: number) => {
+    const delta = percent - 100;
+    return delta > 0 ? `+${delta}%` : `${delta}%`;
+  };
+  return `Lista de sedán. Moto ${signed(VEHICLE_PERCENT.moto)}, SUV ${signed(VEHICLE_PERCENT.suv)}, pickup ${signed(VEHICLE_PERCENT.pickup)}.`;
+}
+
+function lineKey(product: Product, vehicle: VehicleKind, cents: number): string {
+  const size = product.service === "lavado" && product.scales ? vehicle : "-";
+  return `${product.id}:${size}:${cents}`;
+}
+
+function lineName(product: Product, vehicle: VehicleKind): string {
+  if (product.service === "lavado" && product.scales) return `${product.name} · ${VEHICLE_LABEL[vehicle]}`;
+  return product.name;
+}
+
+export function addProduct(lines: CartLine[], product: Product, vehicle: VehicleKind): CartLine[] {
+  const cents = unitCents(product, vehicle);
+  const key = lineKey(product, vehicle, cents);
+  const found = lines.find((line) => line.key === key);
+  if (found) {
+    if (found.qty >= 99) return lines;
+    return lines.map((line) => (line.key === key ? { ...line, qty: line.qty + 1 } : line));
+  }
+  return [
+    ...lines,
+    {
+      key,
+      productId: product.id,
+      service: product.service,
+      name: lineName(product, vehicle),
+      qty: 1,
+      unitCents: cents,
+    },
+  ];
+}
+
+export function setLineQty(lines: CartLine[], key: string, qty: number): CartLine[] {
+  const next = Math.max(0, Math.min(99, Math.round(qty)));
+  if (next === 0) return lines.filter((line) => line.key !== key);
+  return lines.map((line) => (line.key === key ? { ...line, qty: next } : line));
+}
+
+export function lineCents(line: CartLine): number {
+  return line.unitCents * line.qty;
+}
+
+export function sumLines(lines: CartLine[]): { byService: ServiceTotals; totalCents: number } {
+  const byService = emptyTotals();
+  for (const line of lines) byService[line.service] += lineCents(line);
+  return {
+    byService,
+    totalCents: byService.bar + byService.restaurante + byService.lavado,
+  };
 }
 
 export function todayISO(now = new Date()): string {
@@ -77,443 +109,239 @@ export function todayISO(now = new Date()): string {
   }).format(now);
 }
 
-export function addDays(iso: string, days: number): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  const utc = new Date(Date.UTC(y, m - 1, d + days));
-  const yyyy = utc.getUTCFullYear();
-  const mm = String(utc.getUTCMonth() + 1).padStart(2, "0");
-  const dd = String(utc.getUTCDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
+export function dayKey(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
 }
 
-export function datesFrom(start: string, count: number): string[] {
-  return Array.from({ length: count }, (_, index) => addDays(start, index));
+export function formatWhen(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: TIME_ZONE,
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const pick = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
+  return `${pick("day")}/${pick("month")}/${pick("year")} ${pick("hour")}:${pick("minute")}`;
 }
 
-function dateAtNoon(iso: string): Date {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, d, 12));
-}
-
-export function formatDay(iso: string): string {
-  const label = new Intl.DateTimeFormat("es", {
-    timeZone: "UTC",
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  }).format(dateAtNoon(iso));
-  return label.charAt(0).toUpperCase() + label.slice(1);
-}
-
-export function formatLongDay(iso: string): string {
+export function formatDayLabel(day: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return day;
+  const [year, month, date] = day.split("-").map(Number);
   const label = new Intl.DateTimeFormat("es", {
     timeZone: "UTC",
     weekday: "long",
     day: "numeric",
     month: "long",
-  }).format(dateAtNoon(iso));
+  }).format(new Date(Date.UTC(year, month - 1, date, 12)));
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-export function formatStamp(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("es", {
-    timeZone: TIME_ZONE,
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
+export function ticketNumber(n: number): string {
+  return String(Math.max(1, Math.trunc(n))).padStart(4, "0");
 }
 
-export function dayChip(date: string, today: string): string {
-  if (date === today) return "Hoy";
-  if (date === addDays(today, 1)) return "Mañana";
-  return formatDay(date);
-}
-
-export function nowMinutes(now = new Date()): number {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: TIME_ZONE,
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(now);
-  const hour = Number(parts.find((part) => part.type === "hour")?.value);
-  const minute = Number(parts.find((part) => part.type === "minute")?.value);
-  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return 0;
-  return hour * 60 + minute;
-}
-
-export function bayShort(nowMin: number): string {
-  if (nowMin < BAY_OPEN) return "Bahía abre 8:00";
-  if (nowMin >= BAY_CLOSE) return "Bahía cerrada";
-  return "Bahía abierta";
-}
-
-export function kitchenShort(nowMin: number): string {
-  if (nowMin < KITCHEN_OPEN) return "Cocina abre 12:00";
-  if (nowMin > BAR_LAST) return "Barra cerrada";
-  if (nowMin > KITCHEN_LAST) return "Barra aún abierta";
-  return "Cocina abierta";
-}
-
-export function discountNote(): string {
-  return `Con Completo, Premium o Detalle, si la cocina suma ${moneyCents(DISCOUNT_FOOD_CENTS)} o más, el ${DISCOUNT_PERCENT}% de la comida corre por la casa. La barra y el lavado se cobran enteros.`;
-}
-
-export function vehicleNote(): string {
-  const moto = 100 - VEHICLE_PERCENT.moto;
-  const suv = VEHICLE_PERCENT.suv - 100;
-  const pickup = VEHICLE_PERCENT.pickup - 100;
-  return `La lista es de sedán. Moto −${moto}%, SUV +${suv}%, pickup +${pickup}%.`;
-}
-
-export function lastSeating(hasFood: boolean): number {
-  return hasFood ? KITCHEN_LAST : BAR_LAST;
-}
-
-export function scaleCents(priceDollars: number, kind: VehicleKind): number {
-  return Math.round(priceDollars * VEHICLE_PERCENT[kind]);
-}
-
-export function addonCents(addon: Addon, kind: VehicleKind): number {
-  if (addon.kinds && !addon.kinds.includes(kind)) return 0;
-  return addon.scales ? scaleCents(addon.price, kind) : addon.price * 100;
-}
-
-export function emptyDraft(date = todayISO()): Draft {
-  return {
-    date,
-    washPackageId: null,
-    addonIds: [],
-    vehicleKind: "sedan",
-    plate: "",
-    color: "",
-    washTime: null,
-    diningTime: null,
-    seat: "patio",
-    party: 2,
-    lines: [],
-    name: "",
-    phone: "",
-    note: "",
-  };
-}
-
-function clip(value: unknown, max: number): string {
-  return typeof value === "string" ? value.slice(0, max) : "";
-}
-
-export function normalizeDraft(input: unknown, opts: { bumpPastTo?: string } = {}): Draft {
-  const today = opts.bumpPastTo ?? todayISO();
-  const base = emptyDraft(today);
-  if (!input || typeof input !== "object") return base;
-  const raw = input as Partial<Draft>;
-  const vehicleKind = VEHICLES.has(raw.vehicleKind as VehicleKind)
-    ? (raw.vehicleKind as VehicleKind)
-    : base.vehicleKind;
-  const seat = SEATS.has(raw.seat as Seat) ? (raw.seat as Seat) : base.seat;
-  let date = typeof raw.date === "string" && ISO_DATE.test(raw.date) ? raw.date : today;
-  let washTime = typeof raw.washTime === "string" && CLOCK.test(raw.washTime) ? raw.washTime : null;
-  let diningTime = typeof raw.diningTime === "string" && CLOCK.test(raw.diningTime) ? raw.diningTime : null;
-  if (opts.bumpPastTo && date < opts.bumpPastTo) {
-    date = opts.bumpPastTo;
-    washTime = null;
-    diningTime = null;
-  }
-  const washPackageId = packages.some((item) => item.id === raw.washPackageId) ? raw.washPackageId ?? null : null;
-  const addonIds = Array.isArray(raw.addonIds)
-    ? raw.addonIds.filter((id): id is string => {
-        if (typeof id !== "string") return false;
-        const addon = addons.find((item) => item.id === id);
-        return Boolean(addon && (!addon.kinds || addon.kinds.includes(vehicleKind)));
-      })
-    : [];
-  const merged = new Map<string, number>();
-  if (Array.isArray(raw.lines)) {
-    for (const line of raw.lines) {
-      if (!line || typeof line !== "object") continue;
-      const itemId = (line as { itemId?: unknown }).itemId;
-      const qty = Number((line as { qty?: unknown }).qty);
-      if (typeof itemId !== "string" || !menu.some((item) => item.id === itemId)) continue;
-      if (!Number.isFinite(qty)) continue;
-      const next = Math.min(12, Math.max(0, Math.round(qty)));
-      if (next <= 0) continue;
-      merged.set(itemId, Math.min(12, (merged.get(itemId) ?? 0) + next));
-    }
-  }
-  const party = Number.isFinite(Number(raw.party))
-    ? Math.min(12, Math.max(1, Math.round(Number(raw.party))))
-    : base.party;
-  return {
-    date,
-    washPackageId,
-    addonIds: washPackageId ? addonIds : [],
-    vehicleKind,
-    plate: clip(raw.plate, 10).toUpperCase(),
-    color: clip(raw.color, 24),
-    washTime: washPackageId ? washTime : null,
-    diningTime,
-    seat,
-    party,
-    lines: [...merged.entries()].map(([itemId, qty]) => ({ itemId, qty })),
-    name: clip(raw.name, 60),
-    phone: clip(raw.phone, 20),
-    note: clip(raw.note, 180),
-  };
-}
-
-function isQuoteLine(value: unknown): value is QuoteLine {
-  if (!value || typeof value !== "object") return false;
-  const line = value as Partial<QuoteLine>;
-  return (
-    typeof line.id === "string" &&
-    typeof line.label === "string" &&
-    Number.isInteger(line.amountCents) &&
-    (line.kind === "wash" || line.kind === "addon" || line.kind === "item" || line.kind === "discount")
-  );
-}
-
-export function normalizeVisits(input: unknown): Visit[] {
-  if (!Array.isArray(input)) return [];
-  const visits: Visit[] = [];
-  for (const item of input.slice(0, 50)) {
-    if (!item || typeof item !== "object") continue;
-    const raw = item as Partial<Visit>;
-    if (typeof raw.code !== "string" || !/^OL-[A-Z0-9]{4,8}$/.test(raw.code)) continue;
-    const lines = Array.isArray(raw.lines)
-      ? raw.lines.filter(isQuoteLine).slice(0, 40).map((line) => ({
-          ...line,
-          id: line.id.slice(0, 40),
-          label: line.label.slice(0, 80),
-        }))
-      : [];
-    if (lines.length === 0) continue;
-    const summed = lines.reduce((sum, line) => sum + line.amountCents, 0);
-    const totalCents = Number.isInteger(raw.totalCents) ? Number(raw.totalCents) : summed;
-    if (Math.abs(totalCents) > 1_000_000) continue;
-    const createdAt =
-      typeof raw.createdAt === "string" && !Number.isNaN(Date.parse(raw.createdAt))
-        ? raw.createdAt
-        : new Date().toISOString();
-    visits.push({
-      code: raw.code,
-      createdAt,
-      status: STATUSES.has(raw.status as Status) ? (raw.status as Status) : "confirmada",
-      draft: normalizeDraft(raw.draft),
-      lines,
+export function closeSale(
+  lines: CartLine[],
+  pay: Pay,
+  tenderedCents: number | null,
+  at: string,
+  sequence: number,
+): Sale | { error: string } {
+  if (lines.length === 0) return { error: "La cuenta está vacía." };
+  const { byService, totalCents } = sumLines(lines);
+  if (totalCents <= 0) return { error: "La cuenta está vacía." };
+  if (pay === "efectivo") {
+    if (tenderedCents === null) return { error: "Escribe el efectivo recibido." };
+    if (tenderedCents < totalCents) return { error: "El efectivo no cubre el total." };
+    return {
+      number: ticketNumber(sequence),
+      at,
+      lines: lines.map((line) => ({ ...line })),
+      byService: { ...byService },
       totalCents,
-    });
-  }
-  return visits;
-}
-
-export function cartKinds(draft: Draft): { food: boolean; drink: boolean; items: number } {
-  let food = false;
-  let drink = false;
-  let items = 0;
-  for (const line of draft.lines) {
-    if (line.qty <= 0) continue;
-    const item = menu.find((entry) => entry.id === line.itemId);
-    if (!item) continue;
-    items += line.qty;
-    if (item.area === "cocina") food = true;
-    else drink = true;
-  }
-  return { food, drink, items };
-}
-
-export function buildQuote(draft: Draft): Quote {
-  const lines: QuoteLine[] = [];
-  let washCents = 0;
-  let foodCents = 0;
-  let drinkCents = 0;
-  const pkg = packages.find((item) => item.id === draft.washPackageId);
-  if (pkg) {
-    const amountCents = scaleCents(pkg.price, draft.vehicleKind);
-    washCents += amountCents;
-    lines.push({
-      id: pkg.id,
-      label: `${pkg.name} · ${VEHICLE_LABEL[draft.vehicleKind]}`,
-      amountCents,
-      kind: "wash",
-    });
-    for (const id of draft.addonIds) {
-      const addon = addons.find((item) => item.id === id);
-      if (!addon) continue;
-      const amount = addonCents(addon, draft.vehicleKind);
-      if (amount <= 0) continue;
-      washCents += amount;
-      lines.push({ id: addon.id, label: addon.name, amountCents: amount, kind: "addon" });
-    }
-  }
-  for (const line of draft.lines) {
-    const item = menu.find((entry) => entry.id === line.itemId);
-    if (!item || line.qty <= 0) continue;
-    const amountCents = item.price * 100 * line.qty;
-    if (item.area === "cocina") foodCents += amountCents;
-    else drinkCents += amountCents;
-    lines.push({
-      id: item.id,
-      label: line.qty > 1 ? `${item.name} × ${line.qty}` : item.name,
-      amountCents,
-      kind: "item",
-    });
-  }
-  const eligible = Boolean(pkg && DISCOUNT_PACKAGES.has(pkg.id) && foodCents >= DISCOUNT_FOOD_CENTS);
-  const discountCents = eligible ? Math.round((foodCents * DISCOUNT_PERCENT) / 100) : 0;
-  if (discountCents > 0) {
-    lines.push({
-      id: "descuento",
-      label: "La casa invita el 10% de la cocina",
-      amountCents: -discountCents,
-      kind: "discount",
-    });
+      pay,
+      tenderedCents,
+      changeCents: tenderedCents - totalCents,
+      voided: false,
+    };
   }
   return {
-    lines,
-    washCents,
-    foodCents,
-    drinkCents,
-    discountCents,
-    totalCents: washCents + foodCents + drinkCents - discountCents,
+    number: ticketNumber(sequence),
+    at,
+    lines: lines.map((line) => ({ ...line })),
+    byService: { ...byService },
+    totalCents,
+    pay,
+    tenderedCents: totalCents,
+    changeCents: 0,
+    voided: false,
   };
 }
 
-export function freeBays(busy: Busy[], start: number, duration: number): number {
-  const end = start + duration;
-  let used = 0;
-  for (const bay of busy) {
-    if (bay.start < end && start < bay.end) used += 1;
-  }
-  return Math.max(0, BAYS - used);
-}
-
-export function washSlots(
-  date: string,
-  durationMin: number,
-  today: string,
-  nowMin: number,
-  busy: Busy[] = [],
-): Slot[] {
-  const slots: Slot[] = [];
-  for (let t = BAY_OPEN; t + durationMin <= BAY_CLOSE; t += 30) {
-    let state: Slot["state"] = "open";
-    if (date < today || (date === today && t <= nowMin)) state = "past";
-    else if (freeBays(busy, t, durationMin) <= 0) state = "full";
-    slots.push({ time: minutesToLabel(t), state });
-  }
-  return slots;
-}
-
-export function diningSlots(date: string, today: string, nowMin: number, lastMin: number): Slot[] {
-  const slots: Slot[] = [];
-  for (let t = KITCHEN_OPEN; t <= lastMin; t += 30) {
-    const past = date < today || (date === today && t <= nowMin);
-    slots.push({ time: minutesToLabel(t), state: past ? "past" : "open" });
-  }
-  return slots;
-}
-
-export function busyByDate(visits: Visit[]): Map<string, Busy[]> {
-  const map = new Map<string, Busy[]>();
-  for (const visit of visits) {
-    if (visit.status === "cancelada") continue;
-    const pkg = packages.find((item) => item.id === visit.draft.washPackageId);
-    if (!pkg || !visit.draft.washTime) continue;
-    const start = labelToMinutes(visit.draft.washTime);
-    const list = map.get(visit.draft.date) ?? [];
-    list.push({ start, end: start + pkg.minutes });
-    map.set(visit.draft.date, list);
-  }
-  return map;
-}
-
-export function nextBay(
-  today: string,
-  nowMin: number,
-  busy: Map<string, Busy[]>,
-  duration = 20,
-): { date: string; time: string } | null {
-  for (let index = 0; index < 7; index += 1) {
-    const date = addDays(today, index);
-    const open = washSlots(date, duration, today, nowMin, busy.get(date) ?? []).find((slot) => slot.state === "open");
-    if (open) return { date, time: open.time };
-  }
-  return null;
-}
-
-export function issues(
-  draft: Draft,
-  clock: Clock,
-  busy: Busy[],
-): { blocking: string[]; personal: string[] } {
-  const blocking: string[] = [];
-  const personal: string[] = [];
-  const quote = buildQuote(draft);
-  const kinds = cartKinds(draft);
-  const hasWash = Boolean(draft.washPackageId);
-  const hasOrder = kinds.items > 0;
-  if (!hasWash && !hasOrder) blocking.push("Elige un lavado, un plato o una copa.");
-  if (hasWash) {
-    const pkg = packages.find((item) => item.id === draft.washPackageId);
-    if (!draft.washTime) {
-      blocking.push("Elige la hora de la bahía.");
-    } else if (pkg) {
-      const slot = washSlots(draft.date, pkg.minutes, clock.today, clock.nowMin, busy).find(
-        (item) => item.time === draft.washTime,
-      );
-      if (!slot || slot.state === "past") blocking.push("Esa hora de bahía ya pasó.");
-      else if (slot.state === "full") blocking.push("Esa bahía está llena. Elige otra hora.");
+export function report(sales: Sale[], day: string): DayReport {
+  const byService = emptyTotals();
+  let totalCents = 0;
+  let cashCents = 0;
+  let cardCents = 0;
+  let tickets = 0;
+  let voids = 0;
+  for (const sale of sales) {
+    if (dayKey(sale.at) !== day) continue;
+    if (sale.voided) {
+      voids += 1;
+      continue;
     }
+    tickets += 1;
+    byService.bar += sale.byService.bar;
+    byService.restaurante += sale.byService.restaurante;
+    byService.lavado += sale.byService.lavado;
+    totalCents += sale.totalCents;
+    if (sale.pay === "efectivo") cashCents += sale.totalCents;
+    else cardCents += sale.totalCents;
   }
-  if (hasOrder && !draft.diningTime) {
-    blocking.push(draft.seat === "llevar" ? "Elige la hora para recoger." : "Elige la hora de la mesa.");
-  } else if (hasOrder && draft.diningTime) {
-    const slot = diningSlots(draft.date, clock.today, clock.nowMin, lastSeating(kinds.food)).find(
-      (item) => item.time === draft.diningTime,
-    );
-    if (!slot || slot.state !== "open") {
-      blocking.push(kinds.food ? "Esa hora de cocina ya no está disponible." : "Esa hora de barra ya no está disponible.");
-    }
-  }
-  if (quote.totalCents <= 0) blocking.push("La visita está vacía.");
-  if (draft.name.trim().length < 2) personal.push("Escribe el nombre de quien llega.");
-  if (draft.phone.trim() && !/^[0-9+\s()-]{7,20}$/.test(draft.phone.trim())) {
-    personal.push("Revisa el teléfono.");
-  }
-  return { blocking, personal };
+  return { day, tickets, voids, byService, totalCents, cashCents, cardCents };
 }
 
-export function validate(
-  draft: Draft,
-  clock: Clock,
-  busy: Busy[],
-): { ok: true } | { ok: false; reason: string } {
-  const found = issues(draft, clock, busy);
-  const reason = found.blocking[0] ?? found.personal[0];
-  if (reason) return { ok: false, reason };
-  return { ok: true };
+function center(text: string): string {
+  const value = text.slice(0, TAPE_WIDTH);
+  const pad = Math.max(0, TAPE_WIDTH - value.length);
+  return `${" ".repeat(Math.floor(pad / 2))}${value}`;
 }
 
-export function makeCode(taken: Set<string>, rand: () => number = Math.random): string {
-  for (let attempt = 0; attempt < 6; attempt += 1) {
-    const body = Math.floor(rand() * 36 ** 4)
-      .toString(36)
-      .toUpperCase()
-      .padStart(4, "0");
-    const code = `OL-${body}`;
-    if (!taken.has(code)) return code;
+function row(left: string, right: string): string {
+  const value = right.slice(0, 12);
+  const room = TAPE_WIDTH - value.length - 1;
+  const label = left.slice(0, Math.max(0, room));
+  return `${label}${" ".repeat(Math.max(1, TAPE_WIDTH - label.length - value.length))}${value}`;
+}
+
+function rule(): string {
+  return "-".repeat(TAPE_WIDTH);
+}
+
+function itemRows(line: CartLine): string[] {
+  const right = moneyExact(lineCents(line));
+  const left = `${line.qty} ${line.name}`;
+  if (left.length + right.length + 1 <= TAPE_WIDTH) return [row(left, right)];
+  return [left.slice(0, TAPE_WIDTH), row("", right)];
+}
+
+export function thermalText(sale: Sale): string {
+  const out = [center(HOUSE.name.toUpperCase()), center(HOUSE.street), center(HOUSE.place), rule()];
+  if (sale.voided) out.push(center("ANULADO"));
+  out.push(row("Ticket", sale.number), row("Fecha", formatWhen(sale.at)), rule());
+  for (const service of SERVICES) {
+    const group = sale.lines.filter((line) => line.service === service);
+    if (group.length === 0) continue;
+    out.push(SERVICE_LABEL[service].toUpperCase());
+    for (const line of group) out.push(...itemRows(line));
   }
-  return `OL-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+  out.push(rule());
+  for (const service of SERVICES) out.push(row(SERVICE_LABEL[service], moneyExact(sale.byService[service])));
+  out.push(rule(), row("TOTAL", moneyExact(sale.totalCents)));
+  if (sale.pay === "efectivo") {
+    out.push(row("Efectivo", moneyExact(sale.tenderedCents)), row("Cambio", moneyExact(sale.changeCents)));
+  } else {
+    out.push(row("Tarjeta", moneyExact(sale.totalCents)));
+  }
+  out.push(rule(), center("Gracias"), center("Comprobante de caja"));
+  return out.join("\n");
 }
 
-export function qtyOf(draft: Draft, itemId: string): number {
-  return draft.lines.find((line) => line.itemId === itemId)?.qty ?? 0;
+export function closeText(dayReport: DayReport): string {
+  const out = [
+    center(HOUSE.name.toUpperCase()),
+    center("CIERRE DEL DIA"),
+    center(formatDayLabel(dayReport.day)),
+    rule(),
+    row("Tickets", String(dayReport.tickets)),
+    row("Anulados", String(dayReport.voids)),
+    rule(),
+  ];
+  for (const service of SERVICES) out.push(row(SERVICE_LABEL[service], moneyExact(dayReport.byService[service])));
+  out.push(
+    rule(),
+    row("TOTAL", moneyExact(dayReport.totalCents)),
+    row("Efectivo", moneyExact(dayReport.cashCents)),
+    row("Tarjeta", moneyExact(dayReport.cardCents)),
+    rule(),
+    center("Cierre de caja"),
+  );
+  return out.join("\n");
 }
 
-export function visitCount(draft: Draft): number {
-  return (draft.washPackageId ? 1 : 0) + cartKinds(draft).items;
+const SERVICES_SET = new Set<ServiceId>(SERVICES);
+const PAYS = new Set<Pay>(["efectivo", "tarjeta"]);
+
+export function normalizeLines(input: unknown): CartLine[] {
+  if (!Array.isArray(input)) return [];
+  const lines: CartLine[] = [];
+  for (const item of input.slice(0, 80)) {
+    if (!item || typeof item !== "object") continue;
+    const raw = item as Partial<CartLine>;
+    if (typeof raw.key !== "string" || typeof raw.productId !== "string" || typeof raw.name !== "string") continue;
+    if (!SERVICES_SET.has(raw.service as ServiceId)) continue;
+    const qty = Number(raw.qty);
+    const unitCents = Number(raw.unitCents);
+    if (!Number.isInteger(qty) || qty < 1 || qty > 99) continue;
+    if (!Number.isInteger(unitCents) || unitCents < 0 || unitCents > 100_000_00) continue;
+    lines.push({
+      key: raw.key.slice(0, 80),
+      productId: raw.productId.slice(0, 40),
+      service: raw.service as ServiceId,
+      name: raw.name.slice(0, 80),
+      qty,
+      unitCents,
+    });
+  }
+  return lines;
+}
+
+export function normalizeSales(input: unknown): Sale[] {
+  if (!Array.isArray(input)) return [];
+  const sales: Sale[] = [];
+  for (const item of input.slice(0, 500)) {
+    if (!item || typeof item !== "object") continue;
+    const raw = item as Partial<Sale>;
+    if (typeof raw.number !== "string" || !/^\d{4,6}$/.test(raw.number)) continue;
+    if (typeof raw.at !== "string" || Number.isNaN(Date.parse(raw.at))) continue;
+    if (!PAYS.has(raw.pay as Pay)) continue;
+    const lines = normalizeLines(raw.lines);
+    if (lines.length === 0) continue;
+    const summed = sumLines(lines);
+    const byService = raw.byService && typeof raw.byService === "object" ? raw.byService : summed.byService;
+    const read = (service: ServiceId) => {
+      const value = Number(byService[service]);
+      return Number.isInteger(value) ? value : summed.byService[service];
+    };
+    const stored: ServiceTotals = { bar: read("bar"), restaurante: read("restaurante"), lavado: read("lavado") };
+    const totalCents = Number.isInteger(raw.totalCents) ? Number(raw.totalCents) : summed.totalCents;
+    const tenderedCents = Number.isInteger(raw.tenderedCents) ? Number(raw.tenderedCents) : totalCents;
+    const changeCents = Number.isInteger(raw.changeCents) ? Number(raw.changeCents) : 0;
+    if (Math.abs(totalCents) > 100_000_00) continue;
+    sales.push({
+      number: raw.number,
+      at: raw.at,
+      lines,
+      byService: stored,
+      totalCents,
+      pay: raw.pay as Pay,
+      tenderedCents,
+      changeCents,
+      voided: raw.voided === true,
+    });
+  }
+  return sales;
 }

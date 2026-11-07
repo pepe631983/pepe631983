@@ -1,271 +1,153 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { addons, packages, PATIO_ITEMS, PATIO_WASH } from "./data";
 import {
-  buildQuote,
-  busyByDate,
-  emptyDraft,
-  makeCode,
-  normalizeDraft,
-  normalizeVisits,
-  nowMinutes,
+  closeSale,
+  normalizeLines,
+  normalizeSales,
+  productById,
+  addProduct,
+  setLineQty,
+  sumLines,
   todayISO,
-  validate,
 } from "./logic";
-import type { Busy, Clock, Draft, Route, Status, Visit } from "./types";
+import type { CartLine, Pay, Route, Sale, ServiceId, VehicleKind } from "./types";
 
-const STORAGE_KEY = "oleaje.v1";
+const STORAGE_KEY = "oleaje.pos.v1";
 
-const ROUTES: Record<string, Route> = {
-  "/": "inicio",
-  "/inicio": "inicio",
-  "/lavado": "lavado",
-  "/cocina": "cocina",
-  "/barra": "barra",
-  "/visita": "visita",
-  "/ticket": "ticket",
-  "/mostrador": "mostrador",
+type Persisted = {
+  lines: CartLine[];
+  sales: Sale[];
+  nextNumber: number;
+  service: ServiceId;
+  vehicle: VehicleKind;
 };
-
-export function parseHash(hash = window.location.hash): { route: Route; params: URLSearchParams } {
-  const raw = hash.replace(/^#/, "");
-  const [pathPart, query] = raw.split("?");
-  const path = pathPart.startsWith("/") ? pathPart : `/${pathPart}`;
-  return { route: ROUTES[path] ?? "inicio", params: new URLSearchParams(query ?? "") };
-}
-
-type ConfirmResult = { ok: true; code: string } | { ok: false; reason: string };
 
 type StoreValue = {
   route: Route;
-  draft: Draft;
-  visits: Visit[];
-  clock: Clock;
-  busyByDate: Map<string, Busy[]>;
-  activeCode: string | null;
-  update: (patch: Partial<Draft>) => void;
-  setQty: (itemId: string, qty: number) => void;
-  toggleAddon: (id: string) => void;
-  confirmVisit: () => ConfirmResult;
-  setStatus: (code: string, status: Status) => void;
-  removeVisit: (code: string) => void;
-  repeatVisit: (code: string) => void;
-  focusVisit: (code: string) => void;
-  clearDraft: () => void;
-  addPatio: () => void;
+  receiptNumber: string | null;
+  service: ServiceId;
+  vehicle: VehicleKind;
+  lines: CartLine[];
+  sales: Sale[];
+  totals: ReturnType<typeof sumLines>;
+  today: string;
+  setService: (service: ServiceId) => void;
+  setVehicle: (vehicle: VehicleKind) => void;
+  add: (productId: string) => void;
+  setQty: (key: string, qty: number) => void;
+  clearTicket: () => void;
+  charge: (pay: Pay, tenderedCents: number | null) => { ok: true; number: string } | { ok: false; reason: string };
+  voidSale: (number: string) => void;
 };
 
 const StoreContext = createContext<StoreValue | null>(null);
 
-function load(): { draft: Draft; visits: Visit[] } {
-  const today = todayISO();
+const SERVICES = new Set<ServiceId>(["bar", "restaurante", "lavado"]);
+const VEHICLES = new Set<VehicleKind>(["moto", "sedan", "suv", "pickup"]);
+
+function load(): Persisted {
+  const empty: Persisted = { lines: [], sales: [], nextNumber: 1, service: "bar", vehicle: "sedan" };
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { draft: emptyDraft(today), visits: [] };
-    const parsed = JSON.parse(raw) as { draft?: unknown; visits?: unknown };
+    if (!raw) return empty;
+    const parsed = JSON.parse(raw) as Partial<Persisted>;
+    const sales = normalizeSales(parsed.sales);
+    const max = sales.reduce((highest, sale) => Math.max(highest, Number(sale.number) || 0), 0);
+    const requested = Number(parsed.nextNumber);
     return {
-      draft: normalizeDraft(parsed.draft, { bumpPastTo: today }),
-      visits: normalizeVisits(parsed.visits),
+      lines: normalizeLines(parsed.lines),
+      sales,
+      nextNumber: Math.max(Number.isInteger(requested) ? requested : 1, max + 1),
+      service: SERVICES.has(parsed.service as ServiceId) ? (parsed.service as ServiceId) : "bar",
+      vehicle: VEHICLES.has(parsed.vehicle as VehicleKind) ? (parsed.vehicle as VehicleKind) : "sedan",
     };
   } catch {
-    return { draft: emptyDraft(today), visits: [] };
+    return empty;
   }
 }
 
-function mergeQty(lines: Draft["lines"], itemId: string, add: number): Draft["lines"] {
-  const next = lines.map((line) => ({ ...line }));
-  const found = next.find((line) => line.itemId === itemId);
-  if (found) found.qty = Math.min(12, found.qty + add);
-  else next.push({ itemId, qty: add });
-  return next;
+function parseHash(hash = window.location.hash): { route: Route; receiptNumber: string | null } {
+  const path = hash.replace(/^#/, "");
+  if (path.startsWith("/recibo/")) return { route: "recibo", receiptNumber: path.slice("/recibo/".length) };
+  if (path === "/libros") return { route: "libros", receiptNumber: null };
+  if (path === "/cierre") return { route: "cierre", receiptNumber: null };
+  return { route: "caja", receiptNumber: null };
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [loaded] = useState(() => load());
-  const [route, setRoute] = useState<Route>(() => parseHash().route);
-  const [draft, setDraft] = useState<Draft>(loaded.draft);
-  const [visits, setVisits] = useState<Visit[]>(loaded.visits);
-  const [activeCode, setActiveCode] = useState<string | null>(null);
-  const [nowMin, setNowMin] = useState(() => nowMinutes());
-  const today = todayISO();
-  const clock = useMemo<Clock>(() => ({ today, nowMin }), [today, nowMin]);
-  const occupancy = useMemo(() => busyByDate(visits), [visits]);
-  const draftRef = useRef(draft);
-  const visitsRef = useRef(visits);
+  const [routeState, setRouteState] = useState(() => parseHash());
+  const [service, setServiceState] = useState<ServiceId>(loaded.service);
+  const [vehicle, setVehicleState] = useState<VehicleKind>(loaded.vehicle);
+  const [lines, setLines] = useState<CartLine[]>(loaded.lines);
+  const [sales, setSales] = useState<Sale[]>(loaded.sales);
+  const [nextNumber, setNextNumber] = useState(loaded.nextNumber);
+  const linesRef = useRef(lines);
+  const salesRef = useRef(sales);
+  const numberRef = useRef(nextNumber);
   const lock = useRef(false);
-  draftRef.current = draft;
-  visitsRef.current = visits;
+  linesRef.current = lines;
+  salesRef.current = sales;
+  numberRef.current = nextNumber;
+  const totals = useMemo(() => sumLines(lines), [lines]);
+  const today = todayISO();
 
   useEffect(() => {
-    const id = window.setInterval(() => setNowMin(nowMinutes()), 30000);
-    return () => window.clearInterval(id);
-  }, []);
-
-  useEffect(() => {
-    const nextToday = todayISO();
-    setDraft((current) =>
-      current.date < nextToday ? { ...current, date: nextToday, washTime: null, diningTime: null } : current,
-    );
-  }, [nowMin]);
-
-  useEffect(() => {
-    const sync = () => {
-      const next = parseHash();
-      setRoute(next.route);
-      if (next.route !== "lavado") return;
-      const id = next.params.get("paquete");
-      if (!id || !packages.some((item) => item.id === id)) return;
-      setDraft((current) =>
-        current.washPackageId === id ? current : { ...current, washPackageId: id, washTime: null },
-      );
-    };
+    const sync = () => setRouteState(parseHash());
     window.addEventListener("hashchange", sync);
-    sync();
     return () => window.removeEventListener("hashchange", sync);
   }, []);
 
   useEffect(() => {
+    const payload: Persisted = { lines, sales, nextNumber, service, vehicle };
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ draft, visits }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch {
-      /* the book stays in memory if the browser refuses storage */
+      /* the register stays in memory if storage is full */
     }
-  }, [draft, visits]);
+  }, [lines, sales, nextNumber, service, vehicle]);
 
-  function update(patch: Partial<Draft>) {
-    setDraft((prev) => {
-      const next: Draft = { ...prev, ...patch };
-      if (patch.name !== undefined) next.name = patch.name.slice(0, 60);
-      if (patch.phone !== undefined) next.phone = patch.phone.slice(0, 20);
-      if (patch.note !== undefined) next.note = patch.note.slice(0, 180);
-      if (patch.plate !== undefined) next.plate = patch.plate.toUpperCase().slice(0, 10);
-      if (patch.color !== undefined) next.color = patch.color.slice(0, 24);
-      if (patch.vehicleKind && patch.vehicleKind !== prev.vehicleKind) {
-        next.addonIds = next.addonIds.filter((id) => {
-          const addon = addons.find((item) => item.id === id);
-          return Boolean(addon && (!addon.kinds || addon.kinds.includes(next.vehicleKind)));
-        });
-      }
-      if (patch.date && patch.date !== prev.date) {
-        next.washTime = null;
-        next.diningTime = null;
-      }
-      if (patch.washPackageId !== undefined && patch.washPackageId !== prev.washPackageId) {
-        next.washTime = null;
-        if (patch.washPackageId === null) next.addonIds = [];
-      }
-      if (patch.party !== undefined) {
-        const party = Math.round(Number(patch.party));
-        next.party = Number.isFinite(party) ? Math.min(12, Math.max(1, party)) : prev.party;
-      }
-      return next;
-    });
+  function add(productId: string) {
+    const product = productById(productId);
+    if (!product || product.service !== service) return;
+    if (product.kinds && !product.kinds.includes(vehicle)) return;
+    setLines((current) => addProduct(current, product, vehicle));
   }
 
-  function setQty(itemId: string, qty: number) {
-    const nextQty = Math.max(0, Math.min(12, Math.round(qty)));
-    setDraft((prev) => {
-      const lines = prev.lines.filter((line) => line.itemId !== itemId);
-      if (nextQty > 0) lines.push({ itemId, qty: nextQty });
-      return { ...prev, lines };
-    });
-  }
-
-  function toggleAddon(id: string) {
-    setDraft((prev) => ({
-      ...prev,
-      addonIds: prev.addonIds.includes(id) ? prev.addonIds.filter((item) => item !== id) : [...prev.addonIds, id],
-    }));
-  }
-
-  function confirmVisit(): ConfirmResult {
-    if (lock.current) return { ok: false, reason: "Espera un momento." };
-    const current = draftRef.current;
-    const freshClock = { today: todayISO(), nowMin: nowMinutes() };
-    const busy = busyByDate(visitsRef.current).get(current.date) ?? [];
-    const checked = validate(current, freshClock, busy);
-    if (!checked.ok) return checked;
+  function charge(pay: Pay, tenderedCents: number | null) {
+    if (lock.current) return { ok: false as const, reason: "Espera un momento." };
+    const result = closeSale(linesRef.current, pay, tenderedCents, new Date().toISOString(), numberRef.current);
+    if ("error" in result) return { ok: false as const, reason: result.error };
     lock.current = true;
     window.setTimeout(() => {
       lock.current = false;
-    }, 500);
-    const quote = buildQuote(current);
-    const code = makeCode(new Set(visitsRef.current.map((visit) => visit.code)));
-    const visit: Visit = {
-      code,
-      createdAt: new Date().toISOString(),
-      status: "confirmada",
-      draft: {
-        ...current,
-        name: current.name.trim(),
-        phone: current.phone.trim(),
-        note: current.note.trim(),
-        plate: current.plate.trim().toUpperCase(),
-        color: current.color.trim(),
-      },
-      lines: quote.lines,
-      totalCents: quote.totalCents,
-    };
-    setVisits((currentVisits) => [visit, ...currentVisits].slice(0, 50));
-    setDraft(emptyDraft(freshClock.today));
-    setActiveCode(code);
-    return { ok: true, code };
+    }, 400);
+    setSales((current) => [result, ...current].slice(0, 500));
+    setNextNumber((current) => current + 1);
+    setLines([]);
+    window.location.hash = `#/recibo/${result.number}`;
+    return { ok: true as const, number: result.number };
   }
 
-  function setStatus(code: string, status: Status) {
-    setVisits((current) => current.map((visit) => (visit.code === code ? { ...visit, status } : visit)));
-  }
-
-  function removeVisit(code: string) {
-    setVisits((current) => current.filter((visit) => visit.code !== code));
-    setActiveCode((current) => (current === code ? null : current));
-  }
-
-  function repeatVisit(code: string) {
-    const visit = visitsRef.current.find((item) => item.code === code);
-    if (!visit) return;
-    setDraft({ ...visit.draft, date: todayISO(), washTime: null, diningTime: null });
-    window.location.hash = "#/visita";
-  }
-
-  function focusVisit(code: string) {
-    setActiveCode(code);
-  }
-
-  function clearDraft() {
-    setDraft(emptyDraft(todayISO()));
-  }
-
-  function addPatio() {
-    setDraft((prev) => {
-      let lines = prev.lines;
-      for (const itemId of PATIO_ITEMS) lines = mergeQty(lines, itemId, 1);
-      return {
-        ...prev,
-        washPackageId: prev.washPackageId ?? PATIO_WASH,
-        washTime: prev.washPackageId ? prev.washTime : null,
-        lines,
-      };
-    });
-    window.location.hash = "#/visita";
+  function voidSale(number: string) {
+    setSales((current) => current.map((sale) => (sale.number === number ? { ...sale, voided: true } : sale)));
   }
 
   const value: StoreValue = {
-    route,
-    draft,
-    visits,
-    clock,
-    busyByDate: occupancy,
-    activeCode,
-    update,
-    setQty,
-    toggleAddon,
-    confirmVisit,
-    setStatus,
-    removeVisit,
-    repeatVisit,
-    focusVisit,
-    clearDraft,
-    addPatio,
+    route: routeState.route,
+    receiptNumber: routeState.receiptNumber,
+    service,
+    vehicle,
+    lines,
+    sales,
+    totals,
+    today,
+    setService: setServiceState,
+    setVehicle: setVehicleState,
+    add,
+    setQty: (key, qty) => setLines((current) => setLineQty(current, key, qty)),
+    clearTicket: () => setLines([]),
+    charge,
+    voidSale,
   };
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
@@ -273,6 +155,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
 export function useStore(): StoreValue {
   const value = useContext(StoreContext);
-  if (!value) throw new Error("Oleaje no está listo.");
+  if (!value) throw new Error("La caja no está lista.");
   return value;
 }
