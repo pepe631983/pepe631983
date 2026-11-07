@@ -92,6 +92,9 @@ export function Register() {
     if (problem) return problem;
     if (services.length === 0) return "El admin no ha publicado el menú de hoy.";
     if (totals.totalCents === 0) {
+      if (service === "bar" && buttons.some((item) => item.service === "bar" && item.glass)) {
+        return "Algunas bebidas se cobran por vaso. El precio del botón es un vaso.";
+      }
       return services.length === 1
         ? `Toca un botón de ${services[0]?.name ?? "hoy"}.`
         : "Toca un botón. Los servicios del día caben en la misma cuenta.";
@@ -248,6 +251,7 @@ export function Register() {
                     <ProductArt id={product.id} image={product.image} />
                   </span>
                   <span className="tile-name">{product.name}</span>
+                  {product.glass ? <span className="tile-unit">Vaso</span> : null}
                   <strong>{moneyExact(unitCents(product, vehicle))}</strong>
                 </button>
               );

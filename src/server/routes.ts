@@ -181,6 +181,7 @@ async function writeButton(viewer: Viewer, request: Request, editing: boolean): 
       category: body.category,
       image: body.image,
       scales: body.scales === true,
+      glass: body.glass === true,
       hideOnMoto: body.hideOnMoto === true,
       active: body.active !== false,
     });

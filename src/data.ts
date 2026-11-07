@@ -31,13 +31,13 @@ export const VEHICLE_PERCENT: Record<VehicleKind, number> = {
 };
 
 export const catalog: Product[] = [
-  { id: "clara", service: "bar", category: "Cerveza", name: "Clara de barril", price: 5, scales: false },
-  { id: "ambar", service: "bar", category: "Cerveza", name: "Ámbar", price: 6, scales: false },
-  { id: "oleaje", service: "bar", category: "Cócteles", name: "Alto oleaje", price: 12, scales: false },
-  { id: "bahia", service: "bar", category: "Cócteles", name: "Bahía", price: 12, scales: false },
-  { id: "negroni", service: "bar", category: "Cócteles", name: "Negroni", price: 13, scales: false },
-  { id: "blanco", service: "bar", category: "Vino", name: "Blanco", price: 8, scales: false },
-  { id: "tinto", service: "bar", category: "Vino", name: "Tinto", price: 8, scales: false },
+  { id: "clara", service: "bar", category: "Cerveza", name: "Clara de barril", price: 5, scales: false, glass: true },
+  { id: "ambar", service: "bar", category: "Cerveza", name: "Ámbar", price: 6, scales: false, glass: true },
+  { id: "oleaje", service: "bar", category: "Cócteles", name: "Alto oleaje", price: 12, scales: false, glass: true },
+  { id: "bahia", service: "bar", category: "Cócteles", name: "Bahía", price: 12, scales: false, glass: true },
+  { id: "negroni", service: "bar", category: "Cócteles", name: "Negroni", price: 13, scales: false, glass: true },
+  { id: "blanco", service: "bar", category: "Vino", name: "Blanco", price: 8, scales: false, glass: true },
+  { id: "tinto", service: "bar", category: "Vino", name: "Tinto", price: 8, scales: false, glass: true },
   { id: "jamaica", service: "bar", category: "Sin alcohol", name: "Agua de jamaica", price: 4, scales: false },
   { id: "limonada", service: "bar", category: "Sin alcohol", name: "Limonada salada", price: 4, scales: false },
   { id: "cafe", service: "bar", category: "Sin alcohol", name: "Café frío", price: 4, scales: false },

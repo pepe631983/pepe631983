@@ -247,6 +247,15 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 
 .tile-name { font-size: 16px; line-height: 1.2; padding: 0 12px; }
 
+.tile-unit {
+  margin-top: -4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
 .tile strong {
   margin: auto 12px 0;
   background: var(--white);

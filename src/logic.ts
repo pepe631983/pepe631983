@@ -75,8 +75,9 @@ function lineKey(product: Product, vehicle: VehicleKind, cents: number): string 
   return `${product.id}:${size}:${cents}`;
 }
 
-function lineName(product: Product, vehicle: VehicleKind): string {
+export function saleName(product: Product, vehicle: VehicleKind): string {
   if (product.scales) return `${product.name} · ${VEHICLE_LABEL[vehicle]}`;
+  if (product.glass) return `${product.name} · vaso`;
   return product.name;
 }
 
@@ -94,7 +95,7 @@ export function addProduct(lines: CartLine[], product: Product, vehicle: Vehicle
       key,
       productId: product.id,
       service: product.service,
-      name: lineName(product, vehicle),
+      name: saleName(product, vehicle),
       qty: 1,
       unitCents: cents,
     },

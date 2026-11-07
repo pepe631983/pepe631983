@@ -21,6 +21,7 @@ export type Product = {
   scales: boolean;
   kinds?: VehicleKind[];
   image?: string;
+  glass?: boolean;
 };
 
 export type CartLine = {

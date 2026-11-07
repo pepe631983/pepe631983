@@ -58,6 +58,10 @@ describe("caja", () => {
     const lines = ring();
     const claraLine = lines.find((line) => line.productId === "clara");
     expect(claraLine?.qty).toBe(2);
+    expect(claraLine?.name).toBe("Clara de barril · vaso");
+    const cafe = catalog.find((item) => item.id === "cafe");
+    if (!cafe) throw new Error("Falta el catálogo");
+    expect(addProduct([], cafe, "sedan")[0]?.name).toBe("Café frío");
     const summed = sumLines(lines);
     expect(summed.byService.bar).toBe(1000);
     expect(summed.byService.restaurante).toBe(1800);
@@ -87,6 +91,7 @@ describe("caja", () => {
     expect(bar).toBeLessThan(restaurant);
     expect(restaurant).toBeLessThan(wash);
     expect(wash).toBeLessThan(total);
+    expect(text).toContain("Clara de barril · vaso");
     expect(text).toContain("$10.00");
     expect(text).toContain("$18.00");
     expect(text).toContain("$42.48");

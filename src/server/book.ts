@@ -1,5 +1,5 @@
 import { catalog, SERVICE_LABEL, SERVICES } from "../data.js";
-import { closeSale, todayISO, unitCents } from "../logic.js";
+import { closeSale, saleName, todayISO, unitCents } from "../logic.js";
 import type { CartLine, Pay, Product, Sale, ServiceRef, VehicleKind } from "../types.js";
 
 const ID = /^[a-z0-9][a-z0-9-]{0,39}$/;
@@ -27,6 +27,7 @@ export type StoredButton = {
   kinds: VehicleKind[];
   sort: number;
   active: boolean;
+  glass?: boolean;
 };
 
 export type StoredService = {
@@ -62,6 +63,7 @@ export function ensureSeed(slice: Slice, day = todayISO()): Slice {
       category: item.category,
       image: "",
       scales: item.scales,
+      glass: item.glass === true,
       kinds: item.kinds ?? [],
       sort: index,
       active: true,
@@ -104,6 +106,7 @@ export function toProduct(button: StoredButton): Product {
     price: button.priceCents / 100,
     priceCents: button.priceCents,
     scales: button.scales,
+    glass: button.glass ?? catalog.find((item) => item.id === button.id)?.glass === true,
     kinds: button.kinds.length ? button.kinds : undefined,
     image: button.image || undefined,
   };
@@ -180,6 +183,7 @@ export function saveButton(
     category?: unknown;
     image?: unknown;
     scales?: unknown;
+    glass?: unknown;
     hideOnMoto?: unknown;
     active?: unknown;
   },
@@ -198,6 +202,7 @@ export function saveButton(
   if (typeof image !== "string") return image;
   const category = typeof input.category === "string" ? input.category.trim().slice(0, 32) : "";
   const scales = input.scales === true;
+  const glass = serviceId === "bar" && input.glass === true;
   const kinds: VehicleKind[] = input.hideOnMoto === true ? ["sedan", "suv", "pickup"] : [];
   if (input.id) {
     if (!ID.test(input.id) || !slice.buttons.some((button) => button.id === input.id)) {
@@ -207,7 +212,7 @@ export function saveButton(
       ...slice,
       buttons: slice.buttons.map((button) =>
         button.id === input.id
-          ? { ...button, serviceId, name, priceCents, category, image, scales, kinds, active: input.active !== false }
+          ? { ...button, serviceId, name, priceCents, category, image, scales, glass, kinds, active: input.active !== false }
           : button,
       ),
     };
@@ -219,7 +224,7 @@ export function saveButton(
     ...slice,
     buttons: [
       ...slice.buttons,
-      { id, serviceId, name, priceCents, category, image, scales, kinds, sort, active: true },
+      { id, serviceId, name, priceCents, category, image, scales, glass, kinds, sort, active: true },
     ],
   };
 }
@@ -255,20 +260,13 @@ export function reprice(slice: Slice, lines: CartLine[], day: string, previous?:
     const product = toProduct(button);
     const unit = prior ? prior.unitCents : unitCents(product, vehicle);
     const key = prior?.key ?? `${button.id}:${button.scales ? vehicle : "-"}:${unit}`;
-    const name = prior?.name ?? (button.scales ? `${button.name} · ${vehicleLabel(vehicle)}` : button.name);
+    const name = prior?.name ?? saleName(product, vehicle);
     const found = next.find((item) => item.key === key);
     if (found) found.qty = Math.min(99, found.qty + qty);
     else next.push({ key, productId: button.id, service: button.serviceId, name, qty, unitCents: unit });
   }
   if (next.length === 0) return { error: "La cuenta está vacía." };
   return next;
-}
-
-function vehicleLabel(vehicle: VehicleKind): string {
-  if (vehicle === "moto") return "Moto";
-  if (vehicle === "suv") return "SUV";
-  if (vehicle === "pickup") return "Pickup";
-  return "Sedán";
 }
 
 export function openServices(slice: Slice, day: string): ServiceRef[] {

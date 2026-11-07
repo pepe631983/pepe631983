@@ -76,7 +76,7 @@ describe("acceso", () => {
     expect(sold.status).toBe(200);
     expect(sale.totalCents).toBe(1000);
     expect(sale.lines[0]?.unitCents).toBe(500);
-    expect(sale.lines[0]?.name).toBe("Clara de barril");
+    expect(sale.lines[0]?.name).toBe("Clara de barril · vaso");
     expect(sale.changeCents).toBe(9000);
 
     const wash = await call("sales", "POST", cashier, {
@@ -84,6 +84,29 @@ describe("acceso", () => {
       pay: "tarjeta",
     });
     expect((wash.payload as unknown as Sale).totalCents).toBe(4248);
+
+    const board = await call("board", "GET", cashier);
+    const poured = board.payload.buttons as { id: string; glass?: boolean }[];
+    expect(poured.find((button) => button.id === "clara")?.glass).toBe(true);
+    expect(poured.find((button) => button.id === "cafe")?.glass).toBe(false);
+    expect((await call("button", "PATCH", owner, {
+      id: "cafe",
+      serviceId: "bar",
+      name: "Café frío",
+      priceCents: 400,
+      glass: true,
+    })).status).toBe(200);
+    const coffee = await call("sales", "POST", cashier, { lines: [line("cafe")], pay: "tarjeta" });
+    expect((coffee.payload as unknown as Sale).lines[0]?.name).toBe("Café frío · vaso");
+    expect((await call("button", "PATCH", owner, {
+      id: "pollo",
+      serviceId: "restaurante",
+      name: "Pollo al limón",
+      priceCents: 1800,
+      glass: true,
+    })).status).toBe(200);
+    const plate = await call("sales", "POST", cashier, { lines: [line("pollo")], pay: "tarjeta" });
+    expect((plate.payload as unknown as Sale).lines[0]?.name).toBe("Pollo al limón");
 
     expect((await call("menu", "PUT", owner, { day: todayISO(), buttonIds: ["clara"] })).status).toBe(200);
     const hidden = await call("sales", "POST", cashier, { lines: [line("pollo")], pay: "tarjeta" });

@@ -15,6 +15,7 @@ type Draft = {
   category: string;
   image: string;
   scales: boolean;
+  glass: boolean;
   hideOnMoto: boolean;
   onMenu: boolean;
 };
@@ -28,6 +29,7 @@ function draftFrom(button: Product | undefined, serviceId: string, onMenu: boole
     category: button?.category ?? "",
     image: button?.image ?? "",
     scales: button?.scales ?? false,
+    glass: button?.glass === true,
     hideOnMoto: button?.kinds ? !button.kinds.includes("moto") : false,
     onMenu,
   };
@@ -93,6 +95,7 @@ export function Admin() {
         category: item.category,
         image: item.image,
         scales: item.scales,
+        glass: item.serviceId === "bar" && item.glass,
         hideOnMoto: item.hideOnMoto,
         onMenu: includeMenu ? item.onMenu : undefined,
       },
@@ -254,6 +257,7 @@ export function Admin() {
                 <strong>{button.name}</strong>
                 <p className="muted">
                   {allServices.find((service) => service.id === button.service)?.name} · {moneyExact(button.priceCents ?? Math.round(button.price * 100))}
+                  {button.glass ? " · vaso" : ""}
                   {picked.includes(button.id) ? " · en el menú" : " · fuera del menú"}
                 </p>
               </div>
@@ -306,7 +310,7 @@ function ButtonForm({
         <input value={draft.name} onChange={(event) => onChange({ ...draft, name: event.target.value })} />
       </label>
       <label>
-        Precio
+        {draft.serviceId === "bar" && draft.glass ? "Precio del vaso" : "Precio"}
         <input value={draft.price} onChange={(event) => onChange({ ...draft, price: event.target.value })} inputMode="decimal" />
       </label>
       <label>
@@ -324,6 +328,12 @@ function ButtonForm({
         </select>
       </label>
       <div className="checks">
+        {draft.serviceId === "bar" ? (
+          <label className="check">
+            <input type="checkbox" checked={draft.glass} onChange={(event) => onChange({ ...draft, glass: event.target.checked })} />
+            Se cobra por vaso
+          </label>
+        ) : null}
         <label className={`check ${tone(draft.serviceId)}`}>
           <input type="checkbox" checked={draft.scales} onChange={(event) => onChange({ ...draft, scales: event.target.checked })} />
           El precio cambia con el vehículo
