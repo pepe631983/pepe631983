@@ -34,7 +34,7 @@ function draftFrom(button: Product | undefined, serviceId: string, onMenu: boole
 }
 
 export function Admin() {
-  const { ready, admin, viewer, allServices, catalog, menuIds, today, mutate } = useStore();
+  const { ready, admin, allServices, catalog, menuIds, today, mutate } = useStore();
   const [picked, setPicked] = useState<string[]>(menuIds);
   const [serviceName, setServiceName] = useState("");
   const [names, setNames] = useState<Record<string, string>>({});
@@ -167,7 +167,7 @@ export function Admin() {
         <div>
           <h1>Menú de hoy</h1>
           <p>
-            {viewer ? `${viewer} publica el menú. ` : ""}El cajero cobra. El nombre nuevo entra en las próximas cuentas.
+            El admin publica el menú. El cajero cobra. El nombre nuevo entra en las próximas cuentas.
           </p>
         </div>
       </header>

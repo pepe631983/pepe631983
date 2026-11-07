@@ -78,13 +78,20 @@ export function viewerIsAdmin(slice: Slice, viewer: Viewer): boolean {
 
 export function rememberViewer(slice: Slice, viewer: Viewer): Slice {
   if (viewer.kind !== "person") return slice;
-  if (slice.admins.some((admin) => admin.sub === viewer.sub)) return slice;
+  const known = slice.admins.find((admin) => admin.sub === viewer.sub);
+  if (known) {
+    if (known.name === "" && known.email === "") return slice;
+    return {
+      ...slice,
+      admins: slice.admins.map((admin) => (admin.sub === viewer.sub ? { ...admin, email: "", name: "" } : admin)),
+    };
+  }
   const firstPrivate = viewer.appVisibility === "private" && slice.admins.length === 0;
   const teamAdmin = viewer.appVisibility === "team" && viewer.teamRole === "admin";
   if (!firstPrivate && !teamAdmin) return slice;
   return {
     ...slice,
-    admins: [...slice.admins, { sub: viewer.sub, email: viewer.email, name: viewer.name }],
+    admins: [...slice.admins, { sub: viewer.sub, email: "", name: "" }],
   };
 }
 

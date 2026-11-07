@@ -12,7 +12,6 @@ type StoreValue = {
   ready: boolean;
   problem: string | null;
   admin: boolean;
-  viewer: string;
   service: string;
   services: ServiceRef[];
   allServices: ServiceRef[];
@@ -77,7 +76,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [admin, setAdmin] = useState(false);
-  const [viewer, setViewer] = useState("");
   const [service, setServiceState] = useState(cart.service);
   const [services, setServices] = useState<ServiceRef[]>([]);
   const [allServices, setAllServices] = useState<ServiceRef[]>([]);
@@ -104,7 +102,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const board = await api<Board>(`/api/board?day=${encodeURIComponent(todayISO())}`);
     const book = await api<{ sales: Sale[] }>("/api/sales");
     setAdmin(session.admin);
-    setViewer(session.name);
     setServices(board.services);
     setAllServices(board.allServices);
     setButtons(board.buttons);
@@ -217,7 +214,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     ready,
     problem,
     admin,
-    viewer,
     service,
     services,
     allServices,

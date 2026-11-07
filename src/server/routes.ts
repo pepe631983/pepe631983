@@ -65,7 +65,7 @@ async function session(viewer: Viewer): Promise<Response> {
     return { slice: next, value: viewerIsAdmin(next, viewer) };
   });
   if ("error" in saved) return json(saved, 400);
-  return json({ admin: saved.value, name: viewer.name, email: viewer.email });
+  return json({ admin: saved.value });
 }
 
 async function board(viewer: Viewer, request: Request): Promise<Response> {

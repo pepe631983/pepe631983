@@ -12,8 +12,6 @@ export type Board = {
 
 export type Session = {
   admin: boolean;
-  name: string;
-  email: string;
 };
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {

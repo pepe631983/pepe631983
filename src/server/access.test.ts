@@ -42,9 +42,12 @@ beforeEach(() => {
 
 describe("acceso", () => {
   it("hace admin a la primera persona y cajero a la siguiente", async () => {
-    const owner = person("user:owner");
+    const owner = person("user:owner", { name: "Otra empresa" });
     const cashier = person("user:cashier");
-    expect((await call("session", "GET", owner)).payload.admin).toBe(true);
+    const session = await call("session", "GET", owner);
+    expect(session.payload.admin).toBe(true);
+    expect(session.payload).not.toHaveProperty("name");
+    expect(JSON.stringify(session.payload)).not.toContain("Otra empresa");
     expect((await call("session", "GET", cashier)).payload.admin).toBe(false);
     expect((await call("service", "POST", cashier, { name: "Terraza" })).status).toBe(403);
     expect((await call("sale", "DELETE", cashier, undefined, "?number=0001")).status).toBe(403);
