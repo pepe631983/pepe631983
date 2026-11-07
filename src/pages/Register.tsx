@@ -244,7 +244,9 @@ export function Register() {
                   onClick={() => tapProduct(product.id)}
                 >
                   {qty > 0 ? <span className="badge">{qty}</span> : null}
-                  <ProductArt id={product.id} image={product.image} />
+                  <span className="art-frame">
+                    <ProductArt id={product.id} image={product.image} />
+                  </span>
                   <span className="tile-name">{product.name}</span>
                   <strong>{moneyExact(unitCents(product, vehicle))}</strong>
                 </button>
