@@ -4,6 +4,7 @@ import {
   addProduct,
   closeSale,
   closeText,
+  cashSuggestions,
   moneyExact,
   parseMoney,
   report,
@@ -34,6 +35,11 @@ describe("caja", () => {
     expect(parseMoney("10,5")).toBe(1050);
     expect(parseMoney("")).toBeNull();
     expect(parseMoney("10.999")).toBeNull();
+    const ideas = cashSuggestions(7048);
+    expect(ideas.map((idea) => idea.cents)).toEqual([7048, 7100, 10000]);
+    expect(ideas[0]?.label).toBe("Exacto");
+    expect(ideas.every((idea) => idea.cents >= 7048)).toBe(true);
+    expect(cashSuggestions(0)).toEqual([]);
   });
 
   it("ajusta solo el car wash que depende del tamaño", () => {

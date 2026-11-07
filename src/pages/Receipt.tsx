@@ -1,6 +1,7 @@
+import { WaveMark } from "../art";
 import { thermalText } from "../logic";
-import { PrintButton, Tape } from "../tape";
 import { useStore } from "../store";
+import { PrintButton, Tape } from "../tape";
 
 export function ReceiptPage() {
   const { sales, receiptNumber } = useStore();
@@ -18,12 +19,17 @@ export function ReceiptPage() {
   return (
     <div className="print-page">
       <div className="no-print print-actions">
-        <a href="#/">Nueva cuenta</a>
-        <a href="#/libros">Contabilidad</a>
+        <a className="back" href="#/">
+          <WaveMark />
+          Nueva cuenta
+        </a>
+        <a href="#/libros">Libros</a>
         <PrintButton />
       </div>
-      <Tape text={thermalText(sale)} />
-      <p className="no-print hint">El ticket sale a 80 mm. En el cuadro de impresión elige la impresora térmica.</p>
+      <div className="printer">
+        <Tape text={thermalText(sale)} />
+      </div>
+      <p className="no-print hint">Sale a 80 mm. En el cuadro de impresión elige la impresora térmica.</p>
     </div>
   );
 }

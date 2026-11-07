@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { WaveMark } from "../art";
 import { SERVICE_LABEL, SERVICES } from "../data";
 import { closeText, dayKey, formatDayLabel, formatWhen, moneyExact, report } from "../logic";
 import { useStore } from "../store";
@@ -21,9 +22,15 @@ export function Books() {
   return (
     <div className="sheet">
       <header className="page-head no-print">
-        <a href="#/">Volver a la caja</a>
-        <h1>Contabilidad</h1>
-        <p>{formatDayLabel(day)}</p>
+        <a className="back" href="#/">
+          <WaveMark />
+          Caja
+        </a>
+        <div>
+          <h1>Libros</h1>
+          <p>Cada servicio cierra por su lado. El total es la suma de los tres.</p>
+        </div>
+        <p className="when">{formatDayLabel(day)}</p>
       </header>
       <div className="day-row no-print" role="group" aria-label="Día">
         {days.map((item) => (

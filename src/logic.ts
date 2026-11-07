@@ -18,6 +18,23 @@ export function moneyExact(cents: number): string {
   return negative ? `−${body}` : body;
 }
 
+export type CashIdea = { label: string; cents: number };
+
+export function cashSuggestions(totalCents: number): CashIdea[] {
+  if (!Number.isInteger(totalCents) || totalCents <= 0) return [];
+  const ideas: CashIdea[] = [{ label: "Exacto", cents: totalCents }];
+  const nextDollar = Math.ceil(totalCents / 100) * 100;
+  const pool = [nextDollar, 500, 1000, 2000, 5000, 10000, 20000].filter(
+    (cents) => cents > totalCents && cents <= 100_000_00,
+  );
+  for (const cents of pool) {
+    if (ideas.some((idea) => idea.cents === cents)) continue;
+    ideas.push({ label: cents % 100 === 0 ? `$${cents / 100}` : moneyExact(cents), cents });
+    if (ideas.length === 3) break;
+  }
+  return ideas;
+}
+
 export function parseMoney(input: string): number | null {
   const cleaned = input.trim().replace(/\s/g, "").replace(",", ".");
   if (!/^\d+(\.\d{0,2})?$/.test(cleaned)) return null;

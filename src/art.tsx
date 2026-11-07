@@ -120,6 +120,20 @@ function Car({ liquid, accent, drops }: Scene) {
   );
 }
 
+export function WaveMark() {
+  return (
+    <svg className="wave" viewBox="0 0 64 28" aria-hidden="true">
+      <path
+        d="M2 18c6 0 6-8 12-8s6 8 12 8 6-8 12-8 6 8 12 8 6-8 12-8"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export function ProductArt({ id }: { id: string }) {
   const scene = scenes[id] ?? { shape: "plate" as const, liquid: "#e7e0d2", accent: "#c4471a" };
   return (

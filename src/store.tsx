@@ -108,8 +108,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   function add(productId: string) {
     const product = productById(productId);
-    if (!product || product.service !== service) return;
+    if (!product) return;
     if (product.kinds && !product.kinds.includes(vehicle)) return;
+    if (product.service !== service) setServiceState(product.service);
     setLines((current) => addProduct(current, product, vehicle));
   }
 
