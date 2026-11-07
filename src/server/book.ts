@@ -1,6 +1,6 @@
-import { catalog, SERVICE_LABEL, SERVICES } from "../data";
-import { closeSale, todayISO, unitCents } from "../logic";
-import type { CartLine, Pay, Product, Sale, ServiceRef, VehicleKind } from "../types";
+import { catalog, SERVICE_LABEL, SERVICES } from "../data.js";
+import { closeSale, todayISO, unitCents } from "../logic.js";
+import type { CartLine, Pay, Product, Sale, ServiceRef, VehicleKind } from "../types.js";
 
 const ID = /^[a-z0-9][a-z0-9-]{0,39}$/;
 const IMAGE = /^data:image\/(jpeg|png|webp);base64,[a-z0-9+/=\s]+$/i;

@@ -1,9 +1,9 @@
-import { handle } from "./handle.js";
+import { open } from "../src/server/open.js";
 
-export function PATCH(request: Request): Promise<Response> {
-  return handle(request, "sale");
+export async function PATCH(request: Request): Promise<Response> {
+  return open(request, "sale");
 }
 
-export function DELETE(request: Request): Promise<Response> {
-  return handle(request, "sale");
+export async function DELETE(request: Request): Promise<Response> {
+  return open(request, "sale");
 }

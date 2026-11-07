@@ -21,16 +21,23 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   if (method !== "GET" && method !== "HEAD") headers.set("x-oleaje", "1");
   if (init?.body && !headers.has("content-type")) headers.set("content-type", "application/json");
-  const response = await fetch(path, { ...init, headers });
+  let response: Response;
+  try {
+    response = await fetch(path, { ...init, headers, cache: "no-store" });
+  } catch {
+    throw new Error("La caja no respondió.");
+  }
   const text = await response.text();
   let body: { error?: string } = {};
+  let parsed = text.length === 0;
   if (text) {
     try {
       body = JSON.parse(text) as { error?: string };
+      parsed = true;
     } catch {
-      body = { error: "La caja no respondió." };
+      parsed = false;
     }
   }
-  if (!response.ok) throw new Error(body.error || "La caja no respondió.");
+  if (!response.ok || !parsed) throw new Error(body.error || `La caja no respondió (${response.status}).`);
   return body as T;
 }

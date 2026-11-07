@@ -1,5 +1,6 @@
-import { requireIdentity, type VerifiedIdentity } from "../cursor/identity.js";
-import { route, type Viewer } from "../src/server/routes.js";
+import { requireIdentity, type VerifiedIdentity } from "../../cursor/identity.js";
+import { failure } from "./fail.js";
+import { route, type Viewer } from "./routes.js";
 
 function viewerFrom(identity: VerifiedIdentity): Viewer {
   if (identity.kind === "key") {
@@ -25,7 +26,11 @@ function viewerFrom(identity: VerifiedIdentity): Viewer {
 }
 
 export async function handle(request: Request, name: string): Promise<Response> {
-  const identity = await requireIdentity(request);
-  if (identity instanceof Response) return identity;
-  return route(request, name, viewerFrom(identity));
+  try {
+    const identity = await requireIdentity(request);
+    if (identity instanceof Response) return identity;
+    return await route(request, name, viewerFrom(identity));
+  } catch (error) {
+    return failure(error, "La caja no pudo guardar.");
+  }
 }

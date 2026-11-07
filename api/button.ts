@@ -1,9 +1,9 @@
-import { handle } from "./handle.js";
+import { open } from "../src/server/open.js";
 
-export function POST(request: Request): Promise<Response> {
-  return handle(request, "button");
+export async function POST(request: Request): Promise<Response> {
+  return open(request, "button");
 }
 
-export function PATCH(request: Request): Promise<Response> {
-  return handle(request, "button");
+export async function PATCH(request: Request): Promise<Response> {
+  return open(request, "button");
 }

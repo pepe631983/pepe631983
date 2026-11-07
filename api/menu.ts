@@ -1,5 +1,5 @@
-import { handle } from "./handle.js";
+import { open } from "../src/server/open.js";
 
-export function PUT(request: Request): Promise<Response> {
-  return handle(request, "menu");
+export async function PUT(request: Request): Promise<Response> {
+  return open(request, "menu");
 }

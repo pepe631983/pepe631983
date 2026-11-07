@@ -1,5 +1,5 @@
-import { HOUSE, SERVICE_LABEL, SERVICES, VEHICLE_LABEL, VEHICLE_PERCENT, catalog } from "./data";
-import type { CartLine, DayReport, Pay, Product, Sale, ServiceId, ServiceTotals, VehicleKind } from "./types";
+import { HOUSE, SERVICE_LABEL, SERVICES, VEHICLE_LABEL, VEHICLE_PERCENT, catalog } from "./data.js";
+import type { CartLine, DayReport, Pay, Product, Sale, ServiceId, ServiceTotals, VehicleKind } from "./types.js";
 
 export const TIME_ZONE = "America/Grand_Turk";
 export const TAPE_WIDTH = 32;

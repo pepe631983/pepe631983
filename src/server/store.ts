@@ -1,12 +1,20 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
-import { emptySlice, ensureSeed, type Slice } from "./book";
+import { emptySlice, ensureSeed, type Slice } from "./book.js";
 
 type Holder = { slices: Record<string, Slice> };
 
 const locks = new Map<string, Promise<void>>();
-let memoryOnly = process.env.OLEAJE_BOOK === "memory" || process.env.VITEST === "true";
+let memoryOnly = envValue("OLEAJE_BOOK") === "memory" || envValue("VITEST") === "true";
 const memory: Holder = { slices: {} };
+
+function envValue(name: string): string {
+  if (typeof process === "undefined" || process.env == null) return "";
+  const value = process.env[name];
+  return typeof value === "string" ? value : "";
+}
+
+function hosted(): boolean {
+  return envValue("VERCEL") !== "" || envValue("CURSOR_APP_ID") !== "";
+}
 
 export function useMemoryBook(): void {
   memoryOnly = true;
@@ -26,7 +34,9 @@ export async function updateSlice<T>(
   locks.set(key, previous.then(() => gate));
   await previous;
   try {
-    if (process.env.DATABASE_URL && !memoryOnly) return await updatePostgres(key, change);
+    if (memoryOnly) return await updateFile(key, change);
+    if (envValue("DATABASE_URL")) return await updatePostgres(key, change);
+    if (hosted()) return { error: "La caja no tiene base de datos." };
     return await updateFile(key, change);
   } finally {
     release();
@@ -36,10 +46,8 @@ export async function updateSlice<T>(
 export async function readSlice(stage: string): Promise<Slice> {
   const key = stage === "preview" ? "preview" : "production";
   if (memoryOnly) return ensureSeed(memory.slices[key] ?? emptySlice());
-  if (process.env.DATABASE_URL) {
-    const loaded = await loadPostgres(key);
-    return ensureSeed(loaded);
-  }
+  if (envValue("DATABASE_URL")) return ensureSeed(await loadPostgres(key));
+  if (hosted()) throw new Error("La caja no tiene base de datos.");
   const holder = await loadFile();
   return ensureSeed(holder.slices[key] ?? emptySlice());
 }
@@ -60,7 +68,8 @@ async function updateFile<T>(
 
 async function loadFile(): Promise<Holder> {
   try {
-    const raw = await readFile(bookPath(), "utf8");
+    const fs = await import("node:fs/promises");
+    const raw = await fs.readFile(bookPath(), "utf8");
     const parsed = JSON.parse(raw) as Holder;
     if (!parsed || typeof parsed !== "object" || !parsed.slices) return { slices: {} };
     return parsed;
@@ -70,13 +79,16 @@ async function loadFile(): Promise<Holder> {
 }
 
 async function saveFile(holder: Holder): Promise<void> {
+  const fs = await import("node:fs/promises");
   const file = bookPath();
-  await mkdir(path.dirname(file), { recursive: true });
-  await writeFile(file, JSON.stringify(holder));
+  const slash = file.lastIndexOf("/");
+  await fs.mkdir(slash >= 0 ? file.slice(0, slash) : ".", { recursive: true });
+  await fs.writeFile(file, JSON.stringify(holder));
 }
 
 function bookPath(): string {
-  return path.join(process.cwd(), "data", "oleaje-book.json");
+  const cwd = typeof process !== "undefined" && typeof process.cwd === "function" ? process.cwd() : ".";
+  return `${cwd}/data/oleaje-book.json`;
 }
 
 async function loadPostgres(key: string): Promise<Slice> {
@@ -127,9 +139,27 @@ type PgPool = {
 let poolPromise: Promise<PgPool> | null = null;
 
 async function poolFor(): Promise<PgPool> {
-  poolPromise ??= import("pg").then(({ default: pg }) => {
-    const created = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 3 });
-    return created as unknown as PgPool;
-  });
-  return poolPromise;
+  if (poolPromise) return poolPromise;
+  const connectionString = envValue("DATABASE_URL");
+  const pending = import("pg")
+    .then((loaded) => {
+      const Pool = poolConstructor(loaded);
+      return new Pool({ connectionString, max: 3, connectionTimeoutMillis: 10000 });
+    })
+    .catch((error: unknown) => {
+      poolPromise = null;
+      throw error;
+    });
+  poolPromise = pending;
+  return pending;
+}
+
+function poolConstructor(loaded: unknown): new (config: { connectionString: string; max: number; connectionTimeoutMillis: number }) => PgPool {
+  if (loaded && typeof loaded === "object") {
+    const named = (loaded as { Pool?: unknown }).Pool;
+    if (typeof named === "function") return named as new (config: { connectionString: string; max: number; connectionTimeoutMillis: number }) => PgPool;
+    const fallback = (loaded as { default?: { Pool?: unknown } }).default?.Pool;
+    if (typeof fallback === "function") return fallback as new (config: { connectionString: string; max: number; connectionTimeoutMillis: number }) => PgPool;
+  }
+  throw new Error("No está el cliente de Postgres.");
 }

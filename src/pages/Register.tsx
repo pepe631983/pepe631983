@@ -251,7 +251,7 @@ export function Register() {
               );
             })}
           </div>
-          {ready && services.length === 0 ? <p className="empty">El admin no ha publicado el menú de hoy.</p> : null}
+          {ready && !problem && services.length === 0 ? <p className="empty">El admin no ha publicado el menú de hoy.</p> : null}
           {services.length > 0 && products.length === 0 ? <p className="empty">Nada con ese nombre en {serviceName}.</p> : null}
         </section>
 

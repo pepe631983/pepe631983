@@ -14,10 +14,11 @@ import {
   toProduct,
   viewerIsAdmin,
   type Viewer,
-} from "./book";
-import { readSlice, updateSlice } from "./store";
-import { dayKey, todayISO } from "../logic";
-import type { CartLine, Pay } from "../types";
+} from "./book.js";
+import { failure } from "./fail.js";
+import { readSlice, updateSlice } from "./store.js";
+import { dayKey, todayISO } from "../logic.js";
+import type { CartLine, Pay } from "../types.js";
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -53,8 +54,8 @@ export async function route(request: Request, name: string, viewer: Viewer): Pro
     if (name === "button" && request.method === "PATCH") return editButton(viewer, request);
     if (name === "menu" && request.method === "PUT") return publishMenu(viewer, request);
     return json({ error: "No está esa acción." }, 404);
-  } catch {
-    return json({ error: "La caja no pudo guardar." }, 500);
+  } catch (error) {
+    return failure(error, "La caja no pudo guardar.");
   }
 }
 

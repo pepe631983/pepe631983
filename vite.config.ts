@@ -31,8 +31,8 @@ function oleajeApi(): Plugin {
           return;
         }
         try {
-          const loaded = (await server.ssrLoadModule("/api/handle.ts")) as {
-            handle: (request: Request, name: string) => Promise<Response>;
+          const loaded = (await server.ssrLoadModule("/src/server/open.ts")) as {
+            open: (request: Request, name: string) => Promise<Response>;
           };
           const host = req.headers.host ?? "127.0.0.1:5173";
           const method = req.method ?? "GET";
@@ -44,14 +44,16 @@ function oleajeApi(): Plugin {
           const body = method === "GET" || method === "HEAD" ? undefined : await readBody(req);
           const request = new Request(`http://${host}${url}`, { method, headers, body });
           const name = url.slice("/api/".length).split("?")[0] ?? "";
-          const response = await loaded.handle(request, name);
+          const response = await loaded.open(request, name);
           res.statusCode = response.status;
           response.headers.forEach((value, key) => res.setHeader(key, value));
           res.end(Buffer.from(await response.arrayBuffer()));
-        } catch {
+        } catch (error) {
+          const raw = error instanceof Error ? error.message : "";
+          const safe = raw.replace(/postgres(?:ql)?:\/\/\S+/gi, "postgres://…").replace(/[\r\n]+/g, " ").slice(0, 160);
           res.statusCode = 500;
           res.setHeader("content-type", "application/json; charset=utf-8");
-          res.end(JSON.stringify({ error: "La caja no pudo guardar." }));
+          res.end(JSON.stringify({ error: safe ? `La caja no pudo guardar. ${safe}` : "La caja no pudo guardar." }));
         }
       });
     },

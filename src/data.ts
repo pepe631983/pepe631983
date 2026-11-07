@@ -1,4 +1,4 @@
-import type { Product, ServiceId, VehicleKind } from "./types";
+import type { Product, ServiceId, VehicleKind } from "./types.js";
 
 export const HOUSE = {
   name: "Oleaje",
